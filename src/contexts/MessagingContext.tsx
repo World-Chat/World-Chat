@@ -104,7 +104,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           id: '1',
           participants: [
             userToUse,
-            { id: '2', username: 'alice.world', address: '0x1234567890123456789012345678901234567890', profilePicture: 'https://via.placeholder.com/40' }
+            { id: '2', username: 'alice.world', address: '0xa882a2af989de54330f994cf626ea7f5d5edc2fc', profilePicture: 'https://via.placeholder.com/40' }
           ],
           unreadCount: 0,
           createdAt: new Date(),
@@ -114,7 +114,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           id: '2',
           participants: [
             userToUse,
-            { id: '3', username: 'bob.world', address: '0x4567890123456789012345678901234567890123', profilePicture: 'https://via.placeholder.com/40' }
+            { id: '3', username: 'bob.world', address: '0xa882a2af989de54330f994cf626ea7f5d5edc2fc', profilePicture: 'https://via.placeholder.com/40' }
           ],
           unreadCount: 2,
           createdAt: new Date(),
