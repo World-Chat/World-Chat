@@ -1,49 +1,6 @@
-import { PaymentRequest } from '../types/messaging';
+import { MiniKit, PayCommandInput, Tokens, tokenToDecimals, MiniAppPaymentSuccessPayload } from '@worldcoin/minikit-js';
 import { initiatePayment, confirmPayment } from '../api/initiate-payment';
-
-// Mock MiniKit for development
-class MockMiniKit {
-  user = {
-    address: '0x1234567890123456789012345678901234567890',
-    username: 'user.world',
-    profilePicture: 'https://via.placeholder.com/40',
-  };
-
-  isInstalled() {
-    return true; // Mock as installed for development
-  }
-
-  async getUserByAddress(address: string) {
-    return {
-      address,
-      username: `${address.slice(0, 6)}...${address.slice(-4)}.world`,
-      profilePicture: 'https://via.placeholder.com/40',
-    };
-  }
-
-  commandsAsync = {
-    pay: async (payload: any) => {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return {
-        finalPayload: {
-          status: 'success',
-          transaction_id: `tx_${Math.random().toString(36).substr(2, 9)}`,
-          reference: payload.reference,
-        }
-      };
-    }
-  };
-}
-
-const MiniKit = new MockMiniKit();
-
-// Mock token conversion
-const tokenToDecimals = (amount: number, token: string): string => {
-  const decimals = token === 'WLD' ? 8 : 6;
-  return (amount * Math.pow(10, decimals)).toString();
-};
+import { PaymentRequest } from '../types/messaging';
 
 export class WorldcoinService {
   private static instance: WorldcoinService;
@@ -58,12 +15,40 @@ export class WorldcoinService {
   }
 
   isInstalled(): boolean {
+    // Check if we're running inside World App's webview
+    const isInWorldApp = typeof window !== 'undefined' && 
+      (window.navigator.userAgent.includes('WorldApp') || 
+       window.navigator.userAgent.includes('Worldcoin') ||
+       window.location.href.includes('worldcoin') ||
+       window.location.href.includes('worldapp') ||
+       // Check if MiniKit is available in the global scope
+       typeof (window as unknown as { MiniKit?: unknown }).MiniKit !== 'undefined');
+    
+    // Debug logging to help troubleshoot
+    console.log('World App detection:', {
+      userAgent: window?.navigator?.userAgent,
+      location: window?.location?.href,
+      isInWorldApp,
+      miniKitInstalled: MiniKit.isInstalled()
+    });
+    
+    // If we're in World App's webview, consider it "installed"
+    if (isInWorldApp) {
+      return true;
+    }
+    
+    // Otherwise, use the standard check
     return MiniKit.isInstalled();
   }
 
   async getUserByAddress(address: string) {
     try {
-      return await MiniKit.getUserByAddress(address);
+      // For now, return mock user data since MiniKit doesn't have getUserByAddress
+      return {
+        address,
+        username: `${address.slice(0, 6)}...${address.slice(-4)}.world`,
+        profilePicture: 'https://via.placeholder.com/40',
+      };
     } catch (error) {
       console.error('Failed to get user by address:', error);
       throw error;
@@ -79,21 +64,21 @@ export class WorldcoinService {
     }
   }
 
-  async sendPayment(paymentRequest: PaymentRequest): Promise<any> {
+  async sendPayment(paymentRequest: PaymentRequest): Promise<MiniAppPaymentSuccessPayload | { status: 'error'; error_code: string }> {
     try {
-      const payload = {
+      if (!this.isInstalled()) {
+        throw new Error('World App is not available. Please make sure you are using World App.');
+      }
+
+      const payload: PayCommandInput = {
         reference: paymentRequest.reference,
         to: paymentRequest.to,
         tokens: paymentRequest.tokens.map(token => ({
-          symbol: token.symbol,
+          symbol: token.symbol === 'WLD' ? Tokens.WLD : Tokens.USDC,
           token_amount: token.token_amount,
         })),
         description: paymentRequest.description,
       };
-
-      if (!this.isInstalled()) {
-        throw new Error('World App is not installed');
-      }
 
       const { finalPayload } = await MiniKit.commandsAsync.pay(payload);
       return finalPayload;
@@ -103,7 +88,7 @@ export class WorldcoinService {
     }
   }
 
-  async confirmPayment(payload: any): Promise<{ success: boolean }> {
+  async confirmPayment(payload: MiniAppPaymentSuccessPayload): Promise<{ success: boolean }> {
     try {
       return await confirmPayment(payload);
     } catch (error) {
@@ -113,10 +98,17 @@ export class WorldcoinService {
   }
 
   tokenToDecimals(amount: number, token: 'WLD' | 'USDC'): string {
-    return tokenToDecimals(amount, token);
+    const tokenType = token === 'WLD' ? Tokens.WLD : Tokens.USDC;
+    return tokenToDecimals(amount, tokenType).toString();
   }
 
   getCurrentUser() {
-    return MiniKit.user;
+    // For now, return mock user data since MiniKit doesn't expose user info directly
+    // In a real app, you'd get this from your authentication system
+    return {
+      address: '0x1234567890123456789012345678901234567890',
+      username: 'user.world',
+      profilePicture: 'https://via.placeholder.com/40',
+    };
   }
 } 

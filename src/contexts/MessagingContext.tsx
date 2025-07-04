@@ -61,10 +61,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     try {
       setIsLoading(true);
       
-      // Check if World App is installed
+      // Check if World App is available (more graceful for webview)
       if (!worldcoinService.isInstalled()) {
-        setError('World App is not installed. Please install World App to use this messaging app.');
-        return;
+        console.warn('World App detection failed, but continuing initialization...');
       }
 
       // Get current user
@@ -204,7 +203,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
 
       if (paymentResult.status === 'success') {
         // Confirm payment
-        await worldcoinService.confirmPayment(paymentResult);
+        const confirmationResult = await worldcoinService.confirmPayment(paymentResult);
 
         // Create payment message
         const message: Message = {
@@ -217,7 +216,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           paymentAmount: amount,
           paymentToken: token,
           paymentReference: reference,
-          paymentStatus: 'success',
+          paymentStatus: confirmationResult.success ? 'success' : 'pending',
         };
 
         // Store in Walrus
@@ -234,8 +233,17 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
               : conv
           )
         );
+
+        if (!confirmationResult.success) {
+          console.warn('Payment sent but confirmation failed - payment may still be processing');
+        }
       } else {
-        throw new Error('Payment failed');
+        // Handle payment failure
+        const errorMessage = paymentResult.status === 'error' 
+          ? `Payment failed: ${paymentResult.error_code || 'Unknown error'}`
+          : 'Payment was cancelled by user';
+        
+        throw new Error(errorMessage);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send payment');
@@ -358,8 +366,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   };
 
   const createConversationWithContacts = useCallback(async () => {
-    if (!MiniKit.isInstalled()) {
-      setError('World App is not installed. Please install World App to share contacts.');
+    if (!worldcoinService.isInstalled()) {
+      setError('World App is not available. Please make sure you are using World App.');
       return;
     }
 
