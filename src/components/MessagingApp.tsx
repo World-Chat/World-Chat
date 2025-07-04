@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { MiniKit } from '@worldcoin/minikit-js';
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import ConversationSidebar from "./ConversationSidebar";
@@ -7,8 +8,10 @@ import {
   loadConversations, 
   saveConversations, 
   createNewConversation,
+  createConversationWithContacts,
   type Conversation,
-  type Message 
+  type Message,
+  type Contact
 } from "../utils/localStorage";
 import { MessageCircle, Menu, X } from "lucide-react";
 
@@ -16,6 +19,7 @@ const MessagingApp = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSelectingContacts, setIsSelectingContacts] = useState(false);
 
   useEffect(() => {
     const savedConversations = loadConversations();
@@ -151,12 +155,64 @@ const MessagingApp = () => {
     saveConversations(updatedConversations);
   };
 
+  const shareContacts = useCallback(async () => {
+    if (!MiniKit.isInstalled()) {
+      console.error('World App is not installed');
+      // Fallback to creating a regular conversation
+      const newConversation = createNewConversation();
+      const updatedConversations = [...conversations, newConversation];
+      setConversations(updatedConversations);
+      setActiveConversationId(newConversation.id);
+      saveConversations(updatedConversations);
+      return;
+    }
+
+    setIsSelectingContacts(true);
+    
+    try {
+      const shareContactsPayload = {
+        isMultiSelectEnabled: true,
+        inviteMessage: "Join me on this secure chat app!",
+      };
+
+      const { finalPayload } = await MiniKit.commandsAsync.shareContacts(shareContactsPayload);
+      
+      if (finalPayload.status === 'success') {
+        const contacts: Contact[] = finalPayload.contacts.map(contact => ({
+          username: contact.username,
+          walletAddress: contact.walletAddress,
+          profilePictureUrl: contact.profilePictureUrl,
+        }));
+
+        const newConversation = createConversationWithContacts(contacts);
+        const updatedConversations = [...conversations, newConversation];
+        setConversations(updatedConversations);
+        setActiveConversationId(newConversation.id);
+        saveConversations(updatedConversations);
+      } else {
+        console.error('Contact sharing failed:', finalPayload.error_code);
+        // Fallback to creating a regular conversation
+        const newConversation = createNewConversation();
+        const updatedConversations = [...conversations, newConversation];
+        setConversations(updatedConversations);
+        setActiveConversationId(newConversation.id);
+        saveConversations(updatedConversations);
+      }
+    } catch (error) {
+      console.error('Error sharing contacts:', error);
+      // Fallback to creating a regular conversation
+      const newConversation = createNewConversation();
+      const updatedConversations = [...conversations, newConversation];
+      setConversations(updatedConversations);
+      setActiveConversationId(newConversation.id);
+      saveConversations(updatedConversations);
+    } finally {
+      setIsSelectingContacts(false);
+    }
+  }, [conversations]);
+
   const createConversation = () => {
-    const newConversation = createNewConversation();
-    const updatedConversations = [...conversations, newConversation];
-    setConversations(updatedConversations);
-    setActiveConversationId(newConversation.id);
-    saveConversations(updatedConversations);
+    shareContacts();
   };
 
   const selectConversation = (conversationId: string) => {
@@ -223,6 +279,7 @@ const MessagingApp = () => {
           onSelectConversation={handleSelectConversation}
           onCreateConversation={createConversation}
           onDeleteConversation={deleteConversation}
+          isCreatingConversation={isSelectingContacts}
         />
       </div>
 

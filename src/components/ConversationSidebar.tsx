@@ -1,5 +1,5 @@
 
-import { MessageCircle, Plus, Trash2 } from "lucide-react";
+import { MessageCircle, Plus, Trash2, Loader2 } from "lucide-react";
 import { Conversation } from "../utils/localStorage";
 
 interface ConversationSidebarProps {
@@ -8,6 +8,7 @@ interface ConversationSidebarProps {
   onSelectConversation: (conversationId: string) => void;
   onCreateConversation: () => void;
   onDeleteConversation: (conversationId: string) => void;
+  isCreatingConversation?: boolean;
 }
 
 const ConversationSidebar = ({
@@ -16,6 +17,7 @@ const ConversationSidebar = ({
   onSelectConversation,
   onCreateConversation,
   onDeleteConversation,
+  isCreatingConversation = false,
 }: ConversationSidebarProps) => {
   const formatLastMessage = (conversation: Conversation) => {
     if (conversation.messages.length === 0) {
@@ -45,10 +47,15 @@ const ConversationSidebar = ({
           <h2 className="text-base md:text-lg font-semibold text-gray-900">Conversations</h2>
           <button
             onClick={onCreateConversation}
-            className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-full transition-colors"
-            title="New conversation"
+            disabled={isCreatingConversation}
+            className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
+            title={isCreatingConversation ? "Selecting contacts..." : "New conversation"}
           >
-            <Plus className="h-4 w-4" />
+            {isCreatingConversation ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
@@ -74,9 +81,41 @@ const ConversationSidebar = ({
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm md:text-base text-gray-900 truncate">
-                      {conversation.name}
-                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <h3 className="font-medium text-sm md:text-base text-gray-900 truncate">
+                        {conversation.name}
+                      </h3>
+                      {conversation.contacts && conversation.contacts.length > 0 && (
+                        <div className="flex -space-x-1">
+                          {conversation.contacts.slice(0, 3).map((contact, index) => (
+                            <div
+                              key={contact.walletAddress}
+                              className="w-4 h-4 rounded-full bg-blue-500 border border-white flex items-center justify-center"
+                              title={contact.username}
+                            >
+                              {contact.profilePictureUrl ? (
+                                <img
+                                  src={contact.profilePictureUrl}
+                                  alt={contact.username}
+                                  className="w-full h-full rounded-full"
+                                />
+                              ) : (
+                                <span className="text-[8px] text-white font-medium">
+                                  {contact.username[0].toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          {conversation.contacts.length > 3 && (
+                            <div className="w-4 h-4 rounded-full bg-gray-400 border border-white flex items-center justify-center">
+                              <span className="text-[6px] text-white font-medium">
+                                +{conversation.contacts.length - 3}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <p className="text-xs md:text-sm text-gray-500 truncate mt-1">
                       {formatLastMessage(conversation)}
                     </p>
