@@ -64,7 +64,7 @@ export class ComethService {
         account: safeSmartAccount,
         chain: worldchain,
         bundlerTransport: http(this.config.bundlerUrl),
-        paymaster: paymasterClient,
+        //paymaster: paymasterClient,
         userOperation: {
           estimateFeesPerGas: async () => {
             return await paymasterClient.getUserOperationGasPrice();
