@@ -57,6 +57,25 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
 
   useEffect(() => {
     initializeApp();
+    
+    // Listen for custom authentication events
+    const handleAuthUpdate = (event: CustomEvent) => {
+      const userData = event.detail;
+      console.log('🔄 Authentication data updated via custom event:', userData);
+      
+      // Validate the new user data
+      if (userData.id && userData.username && userData.address) {
+        setCurrentUser(userData);
+        // Reload conversations with the new user
+        loadConversations(userData);
+      }
+    };
+    
+    window.addEventListener('user-authenticated', handleAuthUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('user-authenticated', handleAuthUpdate as EventListener);
+    };
   }, []);
 
   const initializeApp = async () => {
@@ -120,8 +139,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
               profilePicture: authenticatedUser.profilePictureUrl || 'https://via.placeholder.com/40',
             };
             
-            // Store user data in localStorage for future use
-            localStorage.setItem('world-app-user', JSON.stringify(currentUserData));
+            // User data is already stored in localStorage by WorldcoinService
             setCurrentUser(currentUserData);
             
             // Load conversations after user is set

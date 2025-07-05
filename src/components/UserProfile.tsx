@@ -43,8 +43,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
         if (user) {
           addLog(`✅ User address: ${user.walletAddress || 'None'}`);
           addLog(`✅ Username: ${user.username || 'None'}`);
-          addLog('Reloading page in 3 seconds...');
-          setTimeout(() => window.location.reload(), 5000);
+          addLog('✅ Authentication successful! User data saved.');
+          addLog('🔄 MessagingContext will update automatically...');
+          
+          // The WorldcoinService will handle saving to localStorage and dispatching the custom event
+          // The MessagingContext will automatically update when it receives the event
         } else {
           addLog('❌ No user data received');
           // Check MiniKit.user again after auth attempt

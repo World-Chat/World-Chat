@@ -97,6 +97,23 @@ export class WorldcoinService {
             };
 
             console.log('Wallet auth successful, user data:', this.currentUser);
+            
+            // Store user data in localStorage
+            const userDataForStorage = {
+              id: this.currentUser.walletAddress,
+              username: this.currentUser.username || 'Unknown User',
+              address: this.currentUser.walletAddress,
+              profilePicture: this.currentUser.profilePictureUrl || 'https://via.placeholder.com/40',
+            };
+            
+            localStorage.setItem('world-app-user', JSON.stringify(userDataForStorage));
+            
+            // Dispatch custom event to notify MessagingContext
+            const event = new CustomEvent('user-authenticated', {
+              detail: userDataForStorage
+            });
+            window.dispatchEvent(event);
+            
             return this.currentUser;
           } else {
             console.warn('Wallet auth succeeded but MiniKit.user still not populated');
@@ -120,6 +137,23 @@ export class WorldcoinService {
             worldAppVersion: MiniKit.user.worldAppVersion,
             deviceOS: MiniKit.user.deviceOS,
           };
+          
+          // Store user data in localStorage
+          const userDataForStorage = {
+            id: this.currentUser.walletAddress,
+            username: this.currentUser.username || 'Unknown User',
+            address: this.currentUser.walletAddress,
+            profilePicture: this.currentUser.profilePictureUrl || 'https://via.placeholder.com/40',
+          };
+          
+          localStorage.setItem('world-app-user', JSON.stringify(userDataForStorage));
+          
+          // Dispatch custom event to notify MessagingContext
+          const event = new CustomEvent('user-authenticated', {
+            detail: userDataForStorage
+          });
+          window.dispatchEvent(event);
+          
           return this.currentUser;
         }
         return null;
