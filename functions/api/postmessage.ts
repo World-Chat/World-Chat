@@ -55,6 +55,8 @@ export const onRequestPost: PagesFunction<ENV> = async (ctx) => {
       content: request.content || null,
       amount: request.amount || null,
       currency: request.currency || null,
+      paymentStatus: request.type === 'send_payment' ? 'success' : null,
+      requestStatus: request.type === 'request_payment' ? 'pending' : null,
       timestamp: now,
       createdAt: now,
     }

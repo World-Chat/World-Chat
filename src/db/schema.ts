@@ -17,6 +17,8 @@ export const messages = sqliteTable('messages', {
   content: text('content'), // Message content for text messages
   amount: text('amount'), // Payment amount for payment messages
   currency: text('currency'), // Currency for payment messages
+  paymentStatus: text('payment_status'), // 'pending', 'success', 'failed'
+  requestStatus: text('request_status'), // 'pending', 'accepted', 'declined', 'paid'
   timestamp: text('timestamp').notNull(),
   createdAt: text('created_at').notNull(),
 })

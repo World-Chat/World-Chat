@@ -150,6 +150,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           content?: string;
           amount?: string;
           currency?: string;
+          paymentStatus?: string;
+          requestStatus?: string;
           timestamp: string;
           type: string;
         }) => ({
@@ -163,8 +165,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
                       msg.type === 'request_payment' ? 'payment_request' : 'text',
           paymentAmount: msg.amount ? parseFloat(msg.amount) : undefined,
           paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
-          // Set requestStatus to 'pending' for payment_request messages
-          requestStatus: msg.type === 'request_payment' ? 'pending' : undefined,
+          paymentStatus: msg.paymentStatus as 'pending' | 'success' | 'failed' | undefined,
+          requestStatus: msg.requestStatus as 'pending' | 'accepted' | 'declined' | 'paid' | undefined,
         }));
         
         const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -369,6 +371,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           content?: string;
           amount?: string;
           currency?: string;
+          paymentStatus?: string;
+          requestStatus?: string;
           timestamp: string;
           type: string;
         }) => ({
@@ -382,8 +386,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
                       msg.type === 'request_payment' ? 'payment_request' : 'text',
           paymentAmount: msg.amount ? parseFloat(msg.amount) : undefined,
           paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
-          // Set requestStatus to 'pending' for payment_request messages
-          requestStatus: msg.type === 'request_payment' ? 'pending' : undefined,
+          paymentStatus: msg.paymentStatus as 'pending' | 'success' | 'failed' | undefined,
+          requestStatus: msg.requestStatus as 'pending' | 'accepted' | 'declined' | 'paid' | undefined,
         }));
         
         // Sort messages by timestamp - oldest first (top), newest last (bottom)
@@ -740,11 +744,17 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         )
       );
 
-      // Try to update in backend if available
+      // Update in backend API
       try {
-        await walrusService.updateMessageStatus(messageId, 'paid');
+        await backendApi.updateMessage(messageId, { requestStatus: 'paid' });
       } catch (error) {
-        console.warn('Failed to update message status in backend:', error);
+        console.warn('Failed to update message status in backend, trying fallback:', error);
+        // Try fallback to Walrus service
+        try {
+          await walrusService.updateMessageStatus(messageId, 'paid');
+        } catch (fallbackError) {
+          console.warn('Failed to update message status in fallback:', fallbackError);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark payment as paid');
@@ -787,11 +797,17 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         conversationId
       );
 
-      // Update the request status in the backend if available
+      // Update the request status in the backend
       try {
-        await walrusService.updateMessageStatus(messageId, 'accepted');
+        await backendApi.updateMessage(messageId, { requestStatus: 'accepted' });
       } catch (error) {
-        console.warn('Failed to update message status in backend:', error);
+        console.warn('Failed to update message status in backend, trying fallback:', error);
+        // Try fallback to Walrus service
+        try {
+          await walrusService.updateMessageStatus(messageId, 'accepted');
+        } catch (fallbackError) {
+          console.warn('Failed to update message status in fallback:', fallbackError);
+        }
       }
 
     } catch (err) {

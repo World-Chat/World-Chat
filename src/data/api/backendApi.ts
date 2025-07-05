@@ -5,6 +5,7 @@ const POST_CONVERSATION_API = API_BASE_URL + "/postconversation"
 const GET_CONVERSATION_API = API_BASE_URL + "/getconversations"
 const POST_MESSAGE_API = API_BASE_URL + "/postmessage"
 const GET_MESSAGES_API = API_BASE_URL + "/getmessages"
+const UPDATE_MESSAGE_API = API_BASE_URL + "/updatemessage"
 const INITIATE_PAYMENT_API = API_BASE_URL + "/initiate-payment"
 const CONFIRM_PAYMENT_API = API_BASE_URL + "/confirm-payment"
 
@@ -97,9 +98,32 @@ const getMessages = async (conversationId: string, limit?: number, offset?: numb
   return response.json()
 }
 
+const updateMessage = async (messageId: string, updates: {
+  paymentStatus?: 'pending' | 'success' | 'failed'
+  requestStatus?: 'pending' | 'accepted' | 'declined' | 'paid'
+}) => {
+  const response = await fetch(UPDATE_MESSAGE_API, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      messageId,
+      ...updates
+    }),
+  })
+  
+  if (!response.ok) {
+    throw new Error(`Failed to update message: ${response.statusText}`)
+  }
+  
+  return response.json()
+}
+
 export const backendApi = {
   postConversation,
   getConversations,
   postMessage,
   getMessages,
+  updateMessage,
 }
