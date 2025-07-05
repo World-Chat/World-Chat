@@ -2,43 +2,19 @@ import { PaymentRequest } from '../types/messaging';
 import { initiatePayment, confirmPayment } from '../api/initiate-payment';
 import { MiniKit, PayCommandInput, TokensPayload } from '@worldcoin/minikit-js';
 
-// Mock MiniKit for development/fallback
-class MockMiniKit {
-  user = {
-    address: '0x1234567890123456789012345678901234567890',
-    username: 'user.world',
-    profilePicture: 'https://via.placeholder.com/40',
+// World App User type from the documentation
+export type WorldAppUser = {
+  walletAddress?: string;
+  username?: string;
+  profilePictureUrl?: string;
+  permissions?: {
+    notifications: boolean;
+    contacts: boolean;
   };
-
-  isInstalled() {
-    return false; // Mock as not installed for fallback
-  }
-
-  async getUserByAddress(address: string) {
-    return {
-      address,
-      username: `${address.slice(0, 6)}...${address.slice(-4)}.world`,
-      profilePicture: 'https://via.placeholder.com/40',
-    };
-  }
-
-  commandsAsync = {
-    pay: async (payload: PayCommandInput) => {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return {
-        finalPayload: {
-          status: 'success',
-          transaction_id: `tx_${Math.random().toString(36).substr(2, 9)}`,
-          reference: payload.reference,
-        }
-      };
-    }
-  };
-}
-
-const mockMiniKit = new MockMiniKit();
+  optedIntoOptionalAnalytics?: boolean;
+  worldAppVersion?: number;
+  deviceOS?: string;
+};
 
 // Mock token conversion
 const tokenToDecimals = (amount: number, token: string): string => {
@@ -48,6 +24,7 @@ const tokenToDecimals = (amount: number, token: string): string => {
 
 export class WorldcoinService {
   private static instance: WorldcoinService;
+  private currentUser: WorldAppUser | null = null;
   
   private constructor() {}
   
@@ -59,37 +36,88 @@ export class WorldcoinService {
   }
 
   isInstalled(): boolean {
-    // Check if MiniKit is available and installed
     try {
-      console.log('MiniKit check:', {
-        miniKitExists: typeof MiniKit !== 'undefined',
-        isInstalledExists: typeof MiniKit !== 'undefined' && typeof MiniKit.isInstalled === 'function',
-        miniKitUser: typeof MiniKit !== 'undefined' ? MiniKit.user : 'undefined'
-      });
-      
-      if (typeof MiniKit !== 'undefined' && typeof MiniKit.isInstalled === 'function') {
-        const installed = MiniKit.isInstalled();
-        console.log('MiniKit.isInstalled() returned:', installed);
-        return installed;
-      }
-      console.log('MiniKit not available or isInstalled is not a function');
-      return false;
+      return MiniKit.isInstalled();
     } catch (error) {
       console.warn('MiniKit not available:', error);
       return false;
     }
   }
 
-  async getUserByAddress(address: string) {
+  async authenticateWithWallet(): Promise<WorldAppUser | null> {
     try {
-      if (this.isInstalled() && MiniKit.getUserByAddress) {
-        return await MiniKit.getUserByAddress(address);
+      if (!this.isInstalled()) {
+        console.log('World App not installed, using fallback');
+        return null;
       }
-      return await mockMiniKit.getUserByAddress(address);
+
+      // Check if MiniKit has user data available
+      if (typeof MiniKit.user !== 'undefined' && MiniKit.user) {
+        // Use MiniKit user data directly
+        const user = MiniKit.user as WorldAppUser;
+        
+        this.currentUser = {
+          walletAddress: user.walletAddress,
+          username: user.username,
+          profilePictureUrl: user.profilePictureUrl,
+          permissions: user.permissions,
+          optedIntoOptionalAnalytics: user.optedIntoOptionalAnalytics,
+          worldAppVersion: user.worldAppVersion,
+          deviceOS: user.deviceOS,
+        };
+
+        console.log('Using MiniKit user data:', this.currentUser);
+        return this.currentUser;
+      } else {
+        console.warn('MiniKit user data not available');
+        return null;
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return null;
+    }
+  }
+
+  async getUserByAddress(address: string): Promise<WorldAppUser | null> {
+    try {
+      if (!this.isInstalled()) {
+        return null;
+      }
+
+      const user = await MiniKit.getUserByAddress(address);
+      return user;
     } catch (error) {
       console.error('Failed to get user by address:', error);
-      throw error;
+      return null;
     }
+  }
+
+  async getUserByUsername(username: string): Promise<WorldAppUser | null> {
+    try {
+      if (!this.isInstalled()) {
+        return null;
+      }
+
+      const user = await MiniKit.getUserByUsername(username);
+      return user;
+    } catch (error) {
+      console.error('Failed to get user by username:', error);
+      return null;
+    }
+  }
+
+  getCurrentUser(): WorldAppUser | null {
+    // Return the authenticated user if we have one
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // Fallback for desktop testing
+    return {
+      walletAddress: '0x1234567890123456789012345678901234567890',
+      username: 'Desktop User',
+      profilePictureUrl: 'https://via.placeholder.com/40',
+    };
   }
 
   async initiatePayment(): Promise<{ id: string }> {
@@ -136,30 +164,5 @@ export class WorldcoinService {
 
   tokenToDecimals(amount: number, token: 'WLD' | 'USDC'): string {
     return tokenToDecimals(amount, token);
-  }
-
-  getCurrentUser() {
-    // Use real MiniKit if available and installed
-    const installed = this.isInstalled();
-    const hasUser = typeof MiniKit !== 'undefined' && MiniKit.user;
-    
-    console.log('getCurrentUser check:', {
-      installed,
-      hasUser,
-      miniKitUser: hasUser ? MiniKit.user : 'no user'
-    });
-    
-    if (installed && hasUser) {
-      console.log('Using real MiniKit user:', MiniKit.user);
-      return MiniKit.user;
-    }
-    
-    // Fallback to mock for desktop testing
-    console.log('Using fallback mock user');
-    return {
-      walletAddress: '0x1234567890123456789012345678901234567890',
-      username: 'Desktop User',
-      profilePictureUrl: 'https://via.placeholder.com/40',
-    };
   }
 } 

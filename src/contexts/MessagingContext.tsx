@@ -63,38 +63,63 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     try {
       setIsLoading(true);
       
-      // Check if World App is installed
-      if (!worldcoinService.isInstalled()) {
-        // Desktop fallback: use the address as the user ID for consistency
-        const fakeUser: User = {
-          id: '0x1234567890123456789012345678901234567890',
-          username: 'Desktop User',
-          address: '0x1234567890123456789012345678901234567890',
-          profilePicture: 'https://via.placeholder.com/40',
-        };
-        setCurrentUser(fakeUser);
-        
-        // Load conversations after user is set
-        await loadConversations(fakeUser);
-        return;
+      // First, check if we have user data stored in localStorage
+      const storedUser = localStorage.getItem('world-app-user');
+      
+      // Try to authenticate with World App using proper wallet auth
+      if (worldcoinService.isInstalled()) {
+        try {
+          const authenticatedUser = await worldcoinService.authenticateWithWallet();
+          
+          if (authenticatedUser && authenticatedUser.walletAddress) {
+            const currentUserData: User = {
+              id: authenticatedUser.walletAddress,
+              username: authenticatedUser.username || 'Unknown User',
+              address: authenticatedUser.walletAddress,
+              profilePicture: authenticatedUser.profilePictureUrl || 'https://via.placeholder.com/40',
+            };
+            
+            // Store user data in localStorage for future use
+            localStorage.setItem('world-app-user', JSON.stringify(currentUserData));
+            setCurrentUser(currentUserData);
+            
+            // Load conversations after user is set
+            await loadConversations(currentUserData);
+            return;
+          }
+        } catch (authError) {
+          console.warn('World App authentication failed:', authError);
+        }
       }
-
-      // Get current user from World App
-      const user = worldcoinService.getCurrentUser();
-      if (user && user.walletAddress) {
-        const currentUserData: User = {
-          id: user.walletAddress,
-          username: user.username || 'Unknown User',
-          address: user.walletAddress,
-          profilePicture: user.profilePictureUrl || 'https://via.placeholder.com/40',
-        };
-        setCurrentUser(currentUserData);
-        
-        // Load conversations after user is set
-        await loadConversations(currentUserData);
-      } else {
-        setError('Failed to get current user');
+      
+      // If we don't have a real World App user but have stored data, use that
+      if (storedUser) {
+        try {
+          const userData: User = JSON.parse(storedUser);
+          setCurrentUser(userData);
+          
+          // Load conversations after user is set
+          await loadConversations(userData);
+          return;
+        } catch (parseError) {
+          console.warn('Failed to parse stored user data:', parseError);
+          // Clear invalid stored data
+          localStorage.removeItem('world-app-user');
+        }
       }
+      
+      // Fallback to desktop user
+      const fakeUser: User = {
+        id: '0x1234567890123456789012345678901234567890',
+        username: 'Desktop User',
+        address: '0x1234567890123456789012345678901234567890',
+        profilePicture: 'https://via.placeholder.com/40',
+      };
+      setCurrentUser(fakeUser);
+      
+      // Load conversations after user is set
+      await loadConversations(fakeUser);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize app');
     } finally {

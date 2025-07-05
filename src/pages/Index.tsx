@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, Shield, Loader2 } from 'lucide-react';
 import { MessagingApp } from "../components/MessagingApp";
+import { UserProfile } from "../components/UserProfile";
 
 const Index = () => {
   const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [showUserProfile, setShowUserProfile] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -17,6 +19,7 @@ const Index = () => {
     const verified = localStorage.getItem('worldapp_verified');
     if (verified === 'true') {
       setIsVerified(true);
+      setShowUserProfile(true);
     }
   }, []);
 
@@ -78,9 +81,10 @@ const Index = () => {
       // Proceed with successful verification
       setVerificationStatus('success');
       localStorage.setItem('worldapp_verified', 'true');
-      // Delay showing the main app to let user see success message
+      // Delay showing the user profile to let user see success message
       setTimeout(() => {
         setIsVerified(true);
+        setShowUserProfile(true);
       }, 2000);
       console.log('Verification success!');
     } catch (error) {
@@ -93,8 +97,15 @@ const Index = () => {
     }
   };
 
-  // Show main app if user is verified
-  if (isVerified) {
+  // Show user profile if verified but hasn't continued yet
+  if (isVerified && showUserProfile) {
+    return (
+      <UserProfile onContinue={() => setShowUserProfile(false)} />
+    );
+  }
+
+  // Show main app if user is verified and has continued from profile
+  if (isVerified && !showUserProfile) {
     return (
       <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-100">
         <MessagingApp />
@@ -173,6 +184,7 @@ const Index = () => {
               onClick={() => {
                 localStorage.setItem('worldapp_verified', 'true');
                 setIsVerified(true);
+                setShowUserProfile(true);
               }}
               variant="ghost"
               className="w-full text-xs"
