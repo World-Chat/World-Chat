@@ -44,7 +44,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
           addLog(`✅ User address: ${user.walletAddress || 'None'}`);
           addLog(`✅ Username: ${user.username || 'None'}`);
           addLog('Reloading page in 3 seconds...');
-          setTimeout(() => window.location.reload(), 3000);
+          setTimeout(() => window.location.reload(), 5000);
         } else {
           addLog('❌ No user data received');
           // Check MiniKit.user again after auth attempt
@@ -67,48 +67,45 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
   // Check authentication status on mount
   React.useEffect(() => {
     const checkAuthStatus = async () => {
-      addLog('Component mounted - checking auth status...');
+      addLog('=== PAGE LOAD - CHECKING AUTH STATUS ===');
       
       try {
+        // Check localStorage first
+        const storedUser = localStorage.getItem('world-app-user');
+        addLog(`LocalStorage 'world-app-user': ${storedUser ? 'EXISTS' : 'NOT FOUND'}`);
+        
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            addLog(`Stored user data:`);
+            addLog(`- ID: ${userData.id || 'None'}`);
+            addLog(`- Username: ${userData.username || 'None'}`);
+            addLog(`- Address: ${userData.address || 'None'}`);
+          } catch (parseError) {
+            addLog(`Error parsing stored data: ${parseError instanceof Error ? parseError.message : 'Unknown'}`);
+          }
+        }
+        
         const installed = worldcoinService.isInstalled();
         addLog(`World App installed: ${installed}`);
         
         if (installed) {
-          addLog('Checking for existing user data...');
+          addLog('Checking WorldcoinService current user...');
           const user = worldcoinService.getCurrentUser();
-          addLog(`Current user: ${user ? 'Found' : 'None'}`);
+          addLog(`WorldcoinService user: ${user ? 'Found' : 'None'}`);
           if (user) {
-            addLog(`User address: ${user.walletAddress || 'None'}`);
-            addLog(`Username: ${user.username || 'None'}`);
+            addLog(`- Address: ${user.walletAddress || 'None'}`);
+            addLog(`- Username: ${user.username || 'None'}`);
           }
           
-          // Check MiniKit.user according to documentation
+          // Check MiniKit.user status
           try {
-            // Use dynamic import to check MiniKit
             const { MiniKit } = await import('@worldcoin/minikit-js');
-            addLog(`MiniKit imported: true`);
-            addLog(`MiniKit object: ${typeof MiniKit}`);
             addLog(`MiniKit.user exists: ${!!MiniKit.user}`);
             
             if (MiniKit.user) {
-              addLog(`MiniKit.user type: ${typeof MiniKit.user}`);
               addLog(`MiniKit.user.username: ${MiniKit.user.username || 'None'}`);
               addLog(`MiniKit.user.walletAddress: ${MiniKit.user.walletAddress || 'None'}`);
-              addLog(`MiniKit.user.profilePictureUrl: ${MiniKit.user.profilePictureUrl || 'None'}`);
-              
-              // Test getUserByAddress if we have a wallet address
-              if (MiniKit.user.walletAddress) {
-                try {
-                  addLog(`Testing getUserByAddress...`);
-                  const userData = await worldcoinService.getUserByAddress(MiniKit.user.walletAddress);
-                  addLog(`getUserByAddress result: ${userData ? 'Success' : 'Failed'}`);
-                  if (userData) {
-                    addLog(`Retrieved username: ${userData.username || 'None'}`);
-                  }
-                } catch (getUserError) {
-                  addLog(`getUserByAddress error: ${getUserError instanceof Error ? getUserError.message : 'Unknown'}`);
-                }
-              }
             } else {
               addLog('MiniKit.user is null/undefined');
             }
@@ -116,13 +113,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
             addLog(`Failed to import MiniKit: ${importError instanceof Error ? importError.message : 'Unknown'}`);
           }
         }
+        
+        // Check what the MessagingContext currentUser is
+        addLog(`React currentUser:`);
+        addLog(`- ID: ${currentUser?.id || 'None'}`);
+        addLog(`- Username: ${currentUser?.username || 'None'}`);
+        addLog(`- Address: ${currentUser?.address || 'None'}`);
+        
       } catch (error) {
         addLog(`Check error: ${error instanceof Error ? error.message : 'Unknown'}`);
       }
     };
     
     checkAuthStatus();
-  }, []);
+  }, [currentUser]);
 
   if (isLoading) {
     return (

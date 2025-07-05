@@ -62,21 +62,42 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const initializeApp = async () => {
     try {
       setIsLoading(true);
+      console.log('=== MESSAGING CONTEXT INITIALIZATION ===');
       
       // First, check if we have user data stored in localStorage (from previous authentication)
       const storedUser = localStorage.getItem('world-app-user');
+      console.log('Stored user check:', storedUser ? 'FOUND' : 'NOT FOUND');
       
       if (storedUser) {
         try {
           const userData: User = JSON.parse(storedUser);
-          console.log('Using stored authenticated user:', userData.address, userData.username);
-          setCurrentUser(userData);
+          console.log('✅ Parsed stored user data:', {
+            id: userData.id,
+            username: userData.username,
+            address: userData.address
+          });
           
-          // Load conversations after user is set
-          await loadConversations(userData);
-          return;
+          // Validate the stored data has required fields
+          if (userData.id && userData.username && userData.address) {
+            console.log('✅ Stored user data is valid, using it');
+            setCurrentUser(userData);
+            
+            // Load conversations after user is set
+            await loadConversations(userData);
+            console.log('✅ Conversations loaded for stored user');
+            return;
+          } else {
+            console.warn('❌ Stored user data is missing required fields:', {
+              hasId: !!userData.id,
+              hasUsername: !!userData.username,
+              hasAddress: !!userData.address
+            });
+            // Clear invalid stored data
+            localStorage.removeItem('world-app-user');
+          }
         } catch (parseError) {
-          console.warn('Failed to parse stored user data:', parseError);
+          console.warn('❌ Failed to parse stored user data:', parseError);
+          console.warn('❌ Stored data content:', storedUser);
           // Clear invalid stored data
           localStorage.removeItem('world-app-user');
         }
@@ -353,7 +374,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       // Send payment
       const paymentResult = await worldcoinService.sendPayment(paymentRequest);
 
-      if (paymentResult.status === 'success') {
+      if (paymentResult && typeof paymentResult === 'object' && 'status' in paymentResult && paymentResult.status === 'success') {
         // Confirm payment
         await worldcoinService.confirmPayment(paymentResult);
 
