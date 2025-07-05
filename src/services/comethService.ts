@@ -31,6 +31,7 @@ export interface TransactionResult {
 
 export class ComethService {
   private config: ComethConfig;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private smartAccountClient: any = null;
   private isInitialized = false;
 
@@ -248,8 +249,10 @@ export const getComethService = (config?: ComethConfig): ComethService => {
   try {
     // If no config provided, try to get it from the config module
     if (!config) {
-      const { getComethConfig } = require('../config/cometh');
-      config = getComethConfig();
+      // Dynamic import for config - will be resolved at runtime
+      const configModule = import('../config/cometh');
+      console.log('Config module loading deferred - using provided config or defaults');
+      throw new Error('Config required - please provide ComethConfig');
     }
     
     // Create new instance if none exists

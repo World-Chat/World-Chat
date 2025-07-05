@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { ConversationList } from './ConversationList';
+import ConversationSidebar from './ConversationSidebar';
 import { ChatInterface } from './ChatInterface';
-import { useMessaging } from '../contexts/MessagingContext';
+import { useMessaging } from '../contexts/MessagingContextMongo';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
 export const MessagingApp: React.FC = () => {
-  const { isLoading, error, currentConversation } = useMessaging();
+  const { isLoading, currentConversation } = useMessaging();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const toggleMobileSidebar = () => {
@@ -24,16 +24,6 @@ export const MessagingApp: React.FC = () => {
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading messaging app...</p>
         </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full p-4">
-        <Alert className="max-w-md">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
       </div>
     );
   }
@@ -56,7 +46,7 @@ export const MessagingApp: React.FC = () => {
         block
         bg-background border-r border-border
       `}>
-        <ConversationList onMobileClose={closeMobileSidebar} />
+        <ConversationSidebar />
       </div>
 
       {/* Main Chat Area */}

@@ -123,7 +123,7 @@ export class WorldcoinService {
   }
 
   /**
-   * Get current user from Worldcoin MiniKit
+   * Get current user from Worldcoin MiniKit using wallet authentication
    */
   async getCurrentUser(): Promise<{
     address: string;
@@ -133,26 +133,55 @@ export class WorldcoinService {
     try {
       await this.initializeMiniKit();
       
-      // Since MiniKit doesn't have user management methods,
-      // we'll use a fallback approach for development
-      // In production, you would integrate with World App's user system
-      const mockUser = {
-        address: '0x582be5da7d06b2bf6d89c5b4499491c5990fafe4', // mathieu's address
-        username: 'mathieu.3580.world.id',
-        profilePicture: 'https://via.placeholder.com/150/F59E0B/FFFFFF?text=M',
-      };
+      console.log('🔐 Getting current user from World App...');
       
-      console.log('✅ Using development user data (MiniKit user management not available)');
-      return mockUser;
+      // Use wallet authentication to get the current user
+      const walletAuthResult = await MiniKit.commandsAsync.walletAuth({
+        nonce: Math.random().toString(36).substring(7),
+        requestId: `auth_${Date.now()}`,
+        expirationTime: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        notBefore: new Date(),
+        statement: 'Sign in to Chatterbox',
+      });
+
+      if (walletAuthResult.finalPayload.status === 'success') {
+        const address = walletAuthResult.finalPayload.address;
+        console.log('✅ Wallet authentication successful for address:', address);
+        
+        // Get user details by address
+        const userDetails = await MiniKit.getUserByAddress(address);
+        
+        if (userDetails) {
+          console.log('✅ Retrieved user details:', userDetails);
+          return {
+            address: userDetails.walletAddress || address,
+            username: userDetails.username || `user_${address.slice(-4)}`,
+            profilePicture: userDetails.profilePictureUrl,
+          };
+        } else {
+          // Fallback to just the address
+          return {
+            address,
+            username: `user_${address.slice(-4)}`,
+            profilePicture: undefined,
+          };
+        }
+      } else {
+        console.log('❌ Wallet authentication failed:', walletAuthResult.finalPayload);
+        return null;
+      }
       
     } catch (error) {
       console.error('Failed to get current user:', error);
+      
+      // For development when MiniKit is not available
+      console.log('🔧 Development mode: MiniKit not available, using fallback');
       return null;
     }
   }
 
   /**
-   * Get user by address
+   * Get user by address using MiniKit
    */
   async getUserByAddress(address: string): Promise<{
     address: string;
@@ -162,25 +191,18 @@ export class WorldcoinService {
     try {
       await this.initializeMiniKit();
       
-      // Since MiniKit doesn't have user lookup methods,
-      // we'll use a fallback approach for development
-      const mockUsers = {
-        '0x582be5da7d06b2bf6d89c5b4499491c5990fafe4': {
-          address: '0x582be5da7d06b2bf6d89c5b4499491c5990fafe4',
-          username: 'mathieu.3580.world.id',
-          profilePicture: 'https://via.placeholder.com/150/F59E0B/FFFFFF?text=M',
-        },
-        '0xa882a2af989de54330f994cf626ea7f5d5edc2fc': {
-          address: '0xa882a2af989de54330f994cf626ea7f5d5edc2fc',
-          username: 'ewan.1300.world.id',
-          profilePicture: 'https://via.placeholder.com/150/10B981/FFFFFF?text=E',
-        },
-      };
+      console.log(`🔍 Looking up user by address: ${address}`);
       
-      const mockUser = mockUsers[address.toLowerCase()];
-      if (mockUser) {
+      // Use MiniKit's getUserByAddress method
+      const userDetails = await MiniKit.getUserByAddress(address);
+      
+      if (userDetails && userDetails.walletAddress) {
         console.log(`✅ Found user for address: ${address}`);
-        return mockUser;
+        return {
+          address: userDetails.walletAddress,
+          username: userDetails.username || `user_${address.slice(-4)}`,
+          profilePicture: userDetails.profilePictureUrl,
+        };
       }
       
       console.log(`⚠️ No user found for address: ${address}`);
@@ -560,37 +582,66 @@ export class WorldcoinService {
     profilePicture?: string;
   }>> {
     try {
+      console.log('📱 Initializing contact sharing...');
       await this.initializeMiniKit();
 
+      console.log('👥 Opening World App contact sharing dialog...');
       const result = await MiniKit.commandsAsync.shareContacts({
         isMultiSelectEnabled: true,
-        inviteMessage: 'Join me on Chatterbox!',
+        inviteMessage: 'Join me on Chatterbox for secure messaging and payments!',
       });
 
+      console.log('📱 Contact sharing result:', result);
+
       if (result.finalPayload.status === 'success' && result.finalPayload.contacts) {
-        return result.finalPayload.contacts.map(contact => ({
+        console.log(`✅ Received ${result.finalPayload.contacts.length} contacts from World App`);
+        
+        const contacts = result.finalPayload.contacts.map(contact => ({
           address: contact.walletAddress,
           username: contact.username,
           profilePicture: contact.profilePictureUrl || undefined,
         }));
+        
+        console.log('📞 Processed contacts:', contacts);
+        return contacts;
       }
 
-      // Return mock contacts if no contacts shared
-      return [
-        {
-          address: '0xa882a2af989de54330f994cf626ea7f5d5edc2fc',
-          username: 'ewan.1300.world.id',
-          profilePicture: 'https://via.placeholder.com/150/10B981/FFFFFF?text=E',
-        },
-        {
-          address: '0x582be5da7d06b2bf6d89c5b4499491c5990fafe4',
-          username: 'mathieu.3580.world.id',
-          profilePicture: 'https://via.placeholder.com/150/F59E0B/FFFFFF?text=M',
-        },
-      ];
+      if (result.finalPayload.status === 'error') {
+        console.log('❌ Contact sharing error:', result.finalPayload.error_code);
+        
+        const errorCode = result.finalPayload.error_code;
+        if (errorCode && errorCode.toString().includes('cancel')) {
+          console.log('👤 User cancelled contact sharing');
+          throw new Error('Contact sharing was cancelled by user');
+        }
+        
+        throw new Error(`Contact sharing failed: ${errorCode}`);
+      }
+
+      console.log('⚠️ No contacts were shared');
+      return [];
+      
     } catch (error) {
       console.error('Failed to get contacts:', error);
-      return [];
+      
+      // For development, return mock contacts if MiniKit is not available
+      if (error instanceof Error && error.message.includes('MiniKit')) {
+        console.log('🔧 Development mode: Returning mock contacts');
+        return [
+          {
+            address: '0x582be5da7d06b2bf6d89c5b4499491c5990fafe4',
+            username: 'mathieu.3580.world.id',
+            profilePicture: 'https://via.placeholder.com/150/F59E0B/FFFFFF?text=M',
+          },
+          {
+            address: '0xa882a2af989de54330f994cf626ea7f5d5edc2fc',
+            username: 'ewan.1300.world.id',
+            profilePicture: 'https://via.placeholder.com/150/10B981/FFFFFF?text=E',
+          },
+        ];
+      }
+      
+      throw error;
     }
   }
 

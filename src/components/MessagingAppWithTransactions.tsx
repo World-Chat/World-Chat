@@ -1,13 +1,13 @@
 import React, { useEffect } from 'react';
 import { useComethTransactionService } from '../hooks/useComethTransactionService';
 import { MessagingApp } from './MessagingApp';
-import { MessagingProvider } from '../contexts/MessagingContext';
+import { MessagingProvider } from '../contexts/MessagingContextMongo';
 
 export const MessagingAppWithTransactions: React.FC = () => {
   const transactionService = useComethTransactionService();
 
   useEffect(() => {
-    console.log('🔧 MessagingAppWithTransactions - Transaction service status:');
+    console.log('🔧 MessagingAppWithTransactions - Starting with MongoDB integration');
     console.log('  transactionService:', transactionService ? '✅ Available' : '❌ Not available');
     
     if (!transactionService) {
@@ -22,7 +22,7 @@ export const MessagingAppWithTransactions: React.FC = () => {
   }, [transactionService]);
 
   return (
-    <MessagingProvider transactionService={transactionService}>
+    <MessagingProvider>
       <MessagingApp />
     </MessagingProvider>
   );

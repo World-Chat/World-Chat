@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import MessageInput from './MessageInput';
-import { useMessaging } from '../contexts/MessagingContext';
+import { useMessaging } from '../contexts/MessagingContextMongo';
 import { MessageCircle, Menu, RefreshCw, Bug } from 'lucide-react';
 import { diagnoseIssues } from '../utils/diagnose-issues';
 
@@ -18,8 +18,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     messages, 
     sendMessage, 
     sendPayment, 
-    requestMoney,
-    refreshMessageHistory,
+    sendPaymentRequest,
+    loadMessages,
     currentUser,
     isLoading 
   } = useMessaging();
@@ -46,14 +46,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser.id);
     if (!otherParticipant) return;
 
-    await sendPayment(amount, 'WLD', otherParticipant.address, currentConversation.id);
+    await sendPayment(amount, 'WLD', currentConversation.id);
     console.log(`💰 Sent ${amount} WLD to ${otherParticipant.username}`);
   };
 
   const handleRequestMoney = async (amount: number) => {
     if (!currentConversation || !currentUser) return;
     
-    await requestMoney(amount, 'WLD', `Money request for ${amount} WLD`, currentConversation.id);
+    await sendPaymentRequest(amount, 'WLD', `Money request for ${amount} WLD`, currentConversation.id);
     console.log(`💸 Requested ${amount} WLD`);
   };
 
@@ -142,7 +142,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
           <Button 
             variant="outline" 
             size="icon" 
-            onClick={refreshMessageHistory}
+            onClick={() => currentConversation && loadMessages(currentConversation.id)}
             disabled={isLoading}
             title="Refresh messages"
           >

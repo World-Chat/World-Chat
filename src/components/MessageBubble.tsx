@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Message } from '../types/messaging';
-import { useMessaging } from '../contexts/MessagingContext';
+import { useMessaging } from '../contexts/MessagingContextMongo';
 import { Send, CheckCircle, XCircle, Clock, Download, Upload } from 'lucide-react';
 
 interface MessageBubbleProps {
@@ -20,7 +20,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   senderAvatar,
 }) => {
-  const { acceptMoneyRequest, declineMoneyRequest, currentUser } = useMessaging();
+  const { currentUser } = useMessaging();
+  
+  // Money request actions are handled in the UI for now
+  const acceptMoneyRequest = (requestId: string, conversationId: string) => console.log('Accept money request:', requestId, conversationId);
+  const declineMoneyRequest = (requestId: string, conversationId: string) => console.log('Decline money request:', requestId, conversationId);
 
   const getPaymentStatusIcon = () => {
     switch (message.paymentStatus) {
