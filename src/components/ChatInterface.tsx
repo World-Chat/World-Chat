@@ -30,12 +30,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
   const [newMessage, setNewMessage] = useState('');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentToken, setPaymentToken] = useState<'WLD' | 'USDC'>('WLD');
+  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
   const [requestAmount, setRequestAmount] = useState('');
   const [requestToken, setRequestToken] = useState<'WLD' | 'USDC'>('WLD');
   const [requestDescription, setRequestDescription] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Helper variables used throughout the component
+  const isGroupConversation = currentConversation ? currentConversation.participants.length > 2 : false;
+  const otherParticipant = currentConversation?.participants.find(p => p.id !== currentUser?.id);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,6 +49,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Reset selected recipient when dialog opens/closes or conversation changes
+  useEffect(() => {
+    if (isPaymentDialogOpen && currentConversation && currentUser) {
+      if (!isGroupConversation) {
+        // For individual conversations, auto-select the other participant
+        const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser.id);
+        if (otherParticipant) {
+          setSelectedRecipient(otherParticipant.address);
+        }
+      } else {
+        // For group conversations, start with no selection
+        setSelectedRecipient('');
+      }
+    }
+  }, [isPaymentDialogOpen, currentConversation, currentUser, isGroupConversation]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentConversation) return;
@@ -58,11 +79,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     const amount = parseFloat(paymentAmount);
     if (isNaN(amount) || amount <= 0) return;
 
-    const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser.id);
-    if (!otherParticipant) return;
+    let recipientAddress: string;
+    
+    if (isGroupConversation) {
+      // For group conversations, use the selected recipient
+      if (!selectedRecipient) return;
+      recipientAddress = selectedRecipient;
+    } else {
+      // For individual conversations, use the other participant
+      const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser.id);
+      if (!otherParticipant) return;
+      recipientAddress = otherParticipant.address;
+    }
 
-    await sendPayment(amount, paymentToken, otherParticipant.address, currentConversation.id);
+    await sendPayment(amount, paymentToken, recipientAddress, currentConversation.id);
     setPaymentAmount('');
+    setSelectedRecipient('');
     setIsPaymentDialogOpen(false);
   };
 
@@ -113,7 +145,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     );
   }
 
-  const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser?.id);
+  const getGroupName = () => {
+    if (!currentUser) return 'Group Chat';
+    
+    const otherParticipants = currentConversation.participants.filter(p => p.id !== currentUser.id);
+    
+    if (otherParticipants.length === 0) return 'Group Chat';
+    if (otherParticipants.length === 1) return otherParticipants[0].username || 'Unknown User';
+    if (otherParticipants.length === 2) {
+      return `${otherParticipants[0].username || 'User'}, ${otherParticipants[1].username || 'User'}`;
+    }
+    
+    // For more than 2 other participants, show first two + count
+    return `${otherParticipants[0].username || 'User'}, ${otherParticipants[1].username || 'User'} +${otherParticipants.length - 2}`;
+  };
+
+  const getGroupAvatars = () => {
+    if (!currentUser) return [];
+    
+    const otherParticipants = currentConversation.participants.filter(p => p.id !== currentUser.id);
+    return otherParticipants.slice(0, 3); // Show up to 3 avatars
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full">
@@ -130,18 +182,54 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
             <Menu className="h-5 w-5" />
           </Button>
           
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={otherParticipant?.profilePicture} />
-            <AvatarFallback>
-              {otherParticipant?.username?.charAt(0).toUpperCase() || 'U'}
-            </AvatarFallback>
-          </Avatar>
+          {isGroupConversation ? (
+            // Group conversation header
+            <div className="relative">
+              {getGroupAvatars().length > 0 ? (
+                <div className="flex -space-x-2">
+                  {getGroupAvatars().map((participant, index) => (
+                    <Avatar key={participant.id} className="h-8 w-8 border-2 border-background">
+                      <AvatarImage src={participant.profilePicture} />
+                      <AvatarFallback className="text-xs">
+                        {participant.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {getGroupAvatars().length < currentConversation.participants.length - 1 && (
+                    <div className="h-8 w-8 border-2 border-background bg-muted rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium">
+                        +{currentConversation.participants.length - 1 - getGroupAvatars().length}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback>👥</AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          ) : (
+            // Individual conversation header
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={otherParticipant?.profilePicture} />
+              <AvatarFallback>
+                {otherParticipant?.username?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+          )}
+          
           <div className="flex-1">
-            <h2 className="font-semibold">{otherParticipant?.username || 'Unknown User'}</h2>
+            <h2 className="font-semibold">
+              {isGroupConversation ? getGroupName() : (otherParticipant?.username || 'Unknown User')}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              {otherParticipant?.address 
-                ? `${otherParticipant.address.slice(0, 6)}...${otherParticipant.address.slice(-4)}`
-                : 'No address'
+              {isGroupConversation 
+                ? `${currentConversation.participants.length} members`
+                : (otherParticipant?.address 
+                    ? `${otherParticipant.address.slice(0, 6)}...${otherParticipant.address.slice(-4)}`
+                    : 'No address'
+                  )
               }
             </p>
           </div>
@@ -248,6 +336,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
                 <DialogTitle>Send Payment</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
+                {isGroupConversation && (
+                  <div>
+                    <Label htmlFor="recipient">Send to</Label>
+                    <Select value={selectedRecipient} onValueChange={setSelectedRecipient}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a group member" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {currentConversation.participants
+                          .filter(p => p.id !== currentUser?.id)
+                          .map((participant) => (
+                            <SelectItem key={participant.id} value={participant.address}>
+                              <div className="flex items-center space-x-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={participant.profilePicture} />
+                                  <AvatarFallback className="text-xs">
+                                    {participant.username?.charAt(0).toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{participant.username || 'Unknown User'}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="amount">Amount</Label>
                   <Input
@@ -272,7 +387,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleSendPayment} className="w-full" disabled={!paymentAmount}>
+                <Button 
+                  onClick={handleSendPayment} 
+                  className="w-full" 
+                  disabled={!paymentAmount || (isGroupConversation && !selectedRecipient)}
+                >
                   Send Payment
                 </Button>
               </div>

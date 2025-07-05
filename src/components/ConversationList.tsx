@@ -29,6 +29,32 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
     return conversation.participants.find((p) => p.id !== currentUser.id);
   };
 
+  const isGroupConversation = (conversation: Conversation) => {
+    return conversation.participants.length > 2;
+  };
+
+  const getGroupName = (conversation: Conversation) => {
+    if (!currentUser) return 'Group Chat';
+    
+    const otherParticipants = conversation.participants.filter(p => p.id !== currentUser.id);
+    
+    if (otherParticipants.length === 0) return 'Group Chat';
+    if (otherParticipants.length === 1) return otherParticipants[0].username || 'Unknown User';
+    if (otherParticipants.length === 2) {
+      return `${otherParticipants[0].username || 'User'}, ${otherParticipants[1].username || 'User'}`;
+    }
+    
+    // For more than 2 other participants, show first two + count
+    return `${otherParticipants[0].username || 'User'}, ${otherParticipants[1].username || 'User'} +${otherParticipants.length - 2}`;
+  };
+
+  const getGroupAvatars = (conversation: Conversation) => {
+    if (!currentUser) return [];
+    
+    const otherParticipants = conversation.participants.filter(p => p.id !== currentUser.id);
+    return otherParticipants.slice(0, 3); // Show up to 3 avatars
+  };
+
   const getLastMessagePreview = (conversation: Conversation) => {
     if (!conversation.lastMessage) return 'No messages yet';
     
@@ -141,11 +167,14 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
             </div>
           ) : (
             conversations.map((conversation) => {
+            const isGroup = isGroupConversation(conversation);
             const otherParticipant = getOtherParticipant(conversation);
             const isSelected = currentConversation?.id === conversation.id;
             
-            if (!otherParticipant) {
-              return null; // Skip conversations where we can't find the other participant
+            // For individual chats, we need the other participant
+            // For groups, we'll show the group even if we can't find other participants
+            if (!isGroup && !otherParticipant) {
+              return null; // Skip individual conversations where we can't find the other participant
             }
             
             const handleSelectConversation = () => {
@@ -164,17 +193,47 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={otherParticipant?.profilePicture} />
-                    <AvatarFallback>
-                      {otherParticipant?.username?.charAt(0).toUpperCase() || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
+                  {isGroup ? (
+                    // Group conversation - show multiple avatars or group icon
+                    <div className="relative">
+                      {getGroupAvatars(conversation).length > 0 ? (
+                        <div className="flex -space-x-2">
+                          {getGroupAvatars(conversation).map((participant, index) => (
+                            <Avatar key={participant.id} className="h-8 w-8 border-2 border-background">
+                              <AvatarImage src={participant.profilePicture} />
+                              <AvatarFallback className="text-xs">
+                                {participant.username?.charAt(0).toUpperCase() || 'U'}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                          {getGroupAvatars(conversation).length < conversation.participants.length - 1 && (
+                            <div className="h-8 w-8 border-2 border-background bg-muted rounded-full flex items-center justify-center">
+                              <span className="text-xs font-medium">
+                                +{conversation.participants.length - 1 - getGroupAvatars(conversation).length}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback>👥</AvatarFallback>
+                        </Avatar>
+                      )}
+                    </div>
+                  ) : (
+                    // Individual conversation
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={otherParticipant?.profilePicture} />
+                      <AvatarFallback>
+                        {otherParticipant?.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-sm truncate">
-                        {otherParticipant?.username || 'Unknown User'}
+                        {isGroup ? getGroupName(conversation) : (otherParticipant?.username || 'Unknown User')}
                       </h3>
                       {conversation.unreadCount > 0 && (
                         <Badge variant="destructive" className="text-xs">
