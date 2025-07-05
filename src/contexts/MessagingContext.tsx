@@ -4,6 +4,7 @@ import { Message, Conversation, User, PaymentRequest, MoneyRequest } from '../ty
 import { DecentralizedMessagingServiceCometh } from '../services/decentralizedMessagingServiceCometh';
 import { WorldcoinService } from '../services/worldcoinService';
 import { ComethTransactionService } from '../services/comethTransactionService';
+import { getMockConversations, getMockMessages, getMockCurrentUser } from '../data/mockConversations';
 
 interface MessagingContextType {
   conversations: Conversation[];
@@ -76,41 +77,33 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
 
   const initializeApp = async () => {
     try {
-      console.log('🚀 Initializing app...');
+      console.log('🚀 Initializing app with mock data...');
       setIsLoading(true);
       
-      // Check if World App is installed
-      if (!worldcoinService.isInstalled()) {
-        console.error('❌ World App is not installed');
-        setError('World App is not installed. Please install World App to use this messaging app.');
-        return;
-      }
-      console.log('✅ World App is installed');
+      // Use mock data for testing
+      console.log('👤 Setting up mock user...');
+      const mockUser = getMockCurrentUser();
+      setCurrentUser(mockUser);
+      console.log('✅ Mock user set:', mockUser);
 
-      // Get current user
-      console.log('👤 Getting current user...');
-      const user = await worldcoinService.getCurrentUser();
-      if (user) {
-        console.log('✅ Current user found:', user);
-        const currentUserData: User = {
-          id: user.address,
-          username: user.username || 'Unknown User',
-          address: user.address,
-          profilePicture: user.profilePicture,
-        };
-        setCurrentUser(currentUserData);
+      // Load mock conversations
+      console.log('💬 Loading mock conversations...');
+      const mockConversations = getMockConversations();
+      setConversations(mockConversations);
+      console.log(`✅ Loaded ${mockConversations.length} mock conversations`);
+
+      // Auto-select the first conversation
+      if (mockConversations.length > 0) {
+        const firstConversation = mockConversations[0];
+        console.log('📋 Auto-selecting first conversation:', firstConversation.id);
+        setCurrentConversation(firstConversation);
         
-        // Load conversations and message history immediately
-        console.log('💬 Loading conversations and message history for user:', currentUserData.address);
-        await loadConversations(currentUserData);
-        
-        // Also refresh message history to ensure we have the latest data
-        console.log('🔄 Refreshing message history...');
-        await refreshMessageHistory();
-      } else {
-        console.error('❌ Failed to get current user');
-        setError('Failed to get current user');
+        // Load messages for the first conversation
+        const conversationMessages = getMockMessages(firstConversation.id);
+        setMessages(conversationMessages);
+        console.log(`✅ Loaded ${conversationMessages.length} messages for conversation ${firstConversation.id}`);
       }
+      
     } catch (err) {
       console.error('❌ App initialization failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to initialize app');
@@ -233,9 +226,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
       setIsLoading(true);
       console.log(`📨 Loading messages for conversation: ${conversationId}`);
       
-      // Use decentralized service to get messages
-      const conversationMessages = await decentralizedService.getConversationMessages(conversationId);
-      console.log(`📨 Found ${conversationMessages.length} messages for conversation ${conversationId}`);
+      // Use mock data for testing
+      const conversationMessages = getMockMessages(conversationId);
+      console.log(`📨 Found ${conversationMessages.length} mock messages for conversation ${conversationId}`);
       
       if (conversationMessages.length === 0) {
         console.log('ℹ️ No messages found for conversation - this is normal for a new conversation');
@@ -248,17 +241,11 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
       
-      console.log(`✅ Loaded ${sortedMessages.length} messages for conversation ${conversationId}`);
+      console.log(`✅ Loaded ${sortedMessages.length} mock messages for conversation ${conversationId}`);
       setMessages(sortedMessages);
     } catch (err) {
       console.error(`❌ Failed to load messages for conversation ${conversationId}:`, err);
-      
-      // Don't set error for empty conversations - this is normal
-      if (!err.message?.includes('returned no data') && !err.message?.includes('No messages found')) {
-        setError(err instanceof Error ? err.message : 'Failed to load messages');
-      }
-      
-      // Set empty messages as fallback
+      setError(err instanceof Error ? err.message : 'Failed to load messages');
       setMessages([]);
     } finally {
       setIsLoading(false);
@@ -310,17 +297,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         messageType: 'text',
       };
 
-      console.log('📤 Storing message in decentralized system...');
-      // Store in decentralized system (Walrus + Smart Contract via Cometh)
-      const { walrusResult, contractTxHash } = await decentralizedService.sendMessage(
-        message,
-        currentUser.address,
-        transactionService
-      );
-
-      console.log(`✅ Message sent! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}`);
-
-      // Update local state
+      console.log('📤 Adding message to local state (mock mode)...');
+      // In mock mode, just add the message to local state
       setMessages(prev => [...prev, message]);
 
       // Update conversation
