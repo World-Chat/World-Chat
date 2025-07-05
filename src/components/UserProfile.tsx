@@ -23,27 +23,41 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
 
   const handleRefreshAuth = async () => {
     setIsRefreshing(true);
-    addLog('Starting authentication refresh...');
+    addLog('=== STARTING WALLET AUTH ===');
     
     try {
       const installed = worldcoinService.isInstalled();
       addLog(`World App installed: ${installed}`);
       
       if (installed) {
-        addLog('Attempting wallet authentication...');
+        addLog('Current MiniKit.user status:');
+        const { MiniKit } = await import('@worldcoin/minikit-js');
+        addLog(`- exists: ${!!MiniKit.user}`);
+        addLog(`- username: ${MiniKit.user?.username || 'None'}`);
+        addLog(`- walletAddress: ${MiniKit.user?.walletAddress || 'None'}`);
+        
+        addLog('Triggering wallet authentication...');
         const user = await worldcoinService.authenticateWithWallet();
-        addLog(`Auth result: ${user ? 'Success' : 'Failed'}`);
+        addLog(`Auth result: ${user ? 'SUCCESS' : 'FAILED'}`);
+        
         if (user) {
-          addLog(`User address: ${user.walletAddress || 'None'}`);
-          addLog(`Username: ${user.username || 'None'}`);
+          addLog(`✅ User address: ${user.walletAddress || 'None'}`);
+          addLog(`✅ Username: ${user.username || 'None'}`);
+          addLog('Reloading page in 3 seconds...');
+          setTimeout(() => window.location.reload(), 3000);
+        } else {
+          addLog('❌ No user data received');
+          // Check MiniKit.user again after auth attempt
+          addLog('Post-auth MiniKit.user status:');
+          addLog(`- exists: ${!!MiniKit.user}`);
+          addLog(`- username: ${MiniKit.user?.username || 'None'}`);
+          addLog(`- walletAddress: ${MiniKit.user?.walletAddress || 'None'}`);
         }
-        // Refresh the page to reload user data
-        setTimeout(() => window.location.reload(), 2000);
       } else {
-        addLog('World App not installed - using fallback');
+        addLog('❌ World App not installed - using fallback');
       }
     } catch (error) {
-      addLog(`Auth error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      addLog(`❌ Auth error: ${error instanceof Error ? error.message : 'Unknown'}`);
       console.error('Failed to refresh authentication:', error);
     } finally {
       setIsRefreshing(false);
@@ -200,25 +214,32 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            {/* Refresh Authentication Button */}
-            <Button 
-              onClick={handleRefreshAuth}
-              disabled={isRefreshing}
-              variant="outline"
-              className="w-full"
-            >
-              {isRefreshing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Refreshing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh World App Auth
-                </>
+            {/* Wallet Authentication Button */}
+            <div className="space-y-2">
+              <Button 
+                onClick={handleRefreshAuth}
+                disabled={isRefreshing}
+                variant="outline"
+                className="w-full"
+              >
+                {isRefreshing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Authenticating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Trigger Wallet Authentication
+                  </>
+                )}
+              </Button>
+              {!isDesktopUser && (
+                <p className="text-xs text-gray-500 text-center">
+                  Click to authenticate with World App and populate your real user data
+                </p>
               )}
-            </Button>
+            </div>
             
             {/* Continue Button */}
             <Button 

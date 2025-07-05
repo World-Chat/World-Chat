@@ -51,9 +51,9 @@ export class WorldcoinService {
         return null;
       }
 
-      // Use the official method from the documentation: MiniKit.user.username
-      if (MiniKit.user && MiniKit.user.username) {
-        console.log('Found MiniKit.user with username:', MiniKit.user.username);
+      // Check if user is already authenticated
+      if (MiniKit.user && MiniKit.user.username && MiniKit.user.walletAddress) {
+        console.log('User already authenticated with username:', MiniKit.user.username);
         
         this.currentUser = {
           walletAddress: MiniKit.user.walletAddress,
@@ -65,10 +65,63 @@ export class WorldcoinService {
           deviceOS: MiniKit.user.deviceOS,
         };
 
-        console.log('Successfully authenticated with MiniKit.user:', this.currentUser);
+        console.log('Using existing authenticated user:', this.currentUser);
         return this.currentUser;
-      } else {
-        console.warn('MiniKit.user not available or missing username');
+      }
+
+      // Trigger wallet authentication to populate MiniKit.user
+      console.log('MiniKit.user exists but not populated, triggering wallet auth...');
+      
+      try {
+        const authResult = await MiniKit.commandsAsync.walletAuth({
+          nonce: Math.random().toString(36).substring(2, 15),
+          requestId: Math.random().toString(36).substring(2, 15),
+          expirationTime: new Date(Date.now() + 5 * 60 * 1000),
+          notBefore: new Date(),
+          statement: 'Sign in to World Chat to access your conversations',
+        });
+
+        console.log('Wallet auth result:', authResult);
+
+        if (authResult.finalPayload && authResult.finalPayload.status === 'success') {
+          // After successful auth, MiniKit.user should now be populated
+          if (MiniKit.user && MiniKit.user.walletAddress) {
+            this.currentUser = {
+              walletAddress: MiniKit.user.walletAddress,
+              username: MiniKit.user.username,
+              profilePictureUrl: MiniKit.user.profilePictureUrl,
+              permissions: MiniKit.user.permissions,
+              optedIntoOptionalAnalytics: MiniKit.user.optedIntoOptionalAnalytics,
+              worldAppVersion: MiniKit.user.worldAppVersion,
+              deviceOS: MiniKit.user.deviceOS,
+            };
+
+            console.log('Wallet auth successful, user data:', this.currentUser);
+            return this.currentUser;
+          } else {
+            console.warn('Wallet auth succeeded but MiniKit.user still not populated');
+            return null;
+          }
+        } else {
+          console.warn('Wallet auth failed:', authResult);
+          return null;
+        }
+      } catch (authError) {
+        console.error('Wallet auth error:', authError);
+        // If wallet auth fails, check if MiniKit.user got populated anyway
+        if (MiniKit.user && MiniKit.user.walletAddress) {
+          console.log('Auth failed but MiniKit.user is now available');
+          this.currentUser = {
+            walletAddress: MiniKit.user.walletAddress,
+            username: MiniKit.user.username,
+            profilePictureUrl: MiniKit.user.profilePictureUrl,
+            permissions: MiniKit.user.permissions,
+            optedIntoOptionalAnalytics: MiniKit.user.optedIntoOptionalAnalytics,
+            worldAppVersion: MiniKit.user.worldAppVersion,
+            deviceOS: MiniKit.user.deviceOS,
+          };
+          return this.currentUser;
+        }
         return null;
       }
     } catch (error) {
