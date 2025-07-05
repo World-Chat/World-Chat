@@ -18,33 +18,18 @@ export const onRequestGet: PagesFunction<ENV> = async (ctx) => {
     }
 
     // Get conversations where the user is in the users array
-    // Handle both normal JSON and double-encoded JSON formats
+    // Search for the user ID within the JSON array
     const userConversations = await db
       .select()
       .from(conversations)
-      .where(like(conversations.users, `%""${userId}""%`))
+      .where(like(conversations.users, `%"${userId}"%`))
       .orderBy(conversations.updatedAt)
 
     // Parse the users JSON string back to array for each conversation
-    // Handle both normal JSON and double-encoded JSON formats
-    const parsedConversations = userConversations.map(conv => {
-      let users;
-      try {
-        // Try parsing as normal JSON first
-        users = JSON.parse(conv.users);
-        // If it's a string (double-encoded), parse it again
-        if (typeof users === 'string') {
-          users = JSON.parse(users);
-        }
-      } catch (error) {
-        console.error('Failed to parse users JSON:', conv.users, error);
-        users = [];
-      }
-      return {
-        ...conv,
-        users
-      };
-    })
+    const parsedConversations = userConversations.map(conv => ({
+      ...conv,
+      users: JSON.parse(conv.users)
+    }))
 
     return jsonResponse({ conversations: parsedConversations }, 200)
   } catch (e) {
