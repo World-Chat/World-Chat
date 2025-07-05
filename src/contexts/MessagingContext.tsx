@@ -4,6 +4,17 @@ import { Message, Conversation, User, PaymentRequest, MoneyRequest } from '../ty
 import { WalrusMessageService } from '../services/walrusService';
 import { WorldcoinService } from '../services/worldcoinService';
 import { backendApi } from '../data/api/backendApi';
+import { useQueries, useQuery } from '@tanstack/react-query';
+
+// Add type for API response
+interface GetConversationsResponse {
+  conversations: {
+    id: string;
+    users: string[];
+    createdAt: string;
+    updatedAt: string;
+  }[];
+}
 
 interface MessagingContextType {
   conversations: Conversation[];
@@ -12,6 +23,11 @@ interface MessagingContextType {
   currentUser: User | null;
   isLoading: boolean;
   error: string | null;
+  
+  // Logs
+  logs: string[];
+  addLog: (message: string) => void;
+  clearLogs: () => void;
   
   // Actions
   sendMessage: (content: string, conversationId: string) => Promise<void>;
@@ -51,6 +67,60 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `${timestamp}: ${message}`]);
+    console.log(`📝 ${timestamp}: ${message}`);
+  };
+
+  const clearLogs = () => {
+    setLogs([]);
+  };
+
+  const { data, refetch } = useQuery<GetConversationsResponse>({
+    queryFn: async () => {
+      addLog(`🔄 Fetching conversations for user: ${currentUser?.id}`);
+      const result = await backendApi.getConversations(currentUser?.id || "");
+      addLog(`✅ Received ${result.conversations.length} conversations`);
+      addLog(`📊 API Response: ${JSON.stringify(result, null, 2)}`);
+      return result;
+    },
+    queryKey: ["getConversations", currentUser?.id],
+    enabled: !!currentUser?.id,
+  })
+
+  useEffect(() => {
+    if (data && currentUser) {
+      addLog(`🔄 Converting ${data.conversations.length} conversations to frontend format`);
+      
+      // Convert backend conversations to frontend format
+      const convertedConversations: Conversation[] = data.conversations.map((conv) => ({
+        id: conv.id,
+        participants: conv.users.map((userId: string) => {
+          // If it's the current user, use their data
+          if (userId === currentUser.id) {
+            return currentUser;
+          }
+          // For other users, create a placeholder user
+          return {
+            id: userId,
+            username: `User ${userId.slice(0, 6)}`,
+            address: userId,
+            profilePicture: 'https://via.placeholder.com/40',
+          };
+        }),
+        unreadCount: 0,
+        createdAt: new Date(conv.createdAt),
+        updatedAt: new Date(conv.updatedAt),
+      }));
+      
+      setConversations(convertedConversations);
+      addLog(`✅ Successfully converted and set ${convertedConversations.length} conversations`);
+    }
+  }, [data, currentUser]);
+
 
   const walrusService = WalrusMessageService.getInstance();
   const worldcoinService = WorldcoinService.getInstance();
@@ -730,6 +800,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     currentUser,
     isLoading,
     error,
+    logs,
+    addLog,
+    clearLogs,
     sendMessage,
     sendPayment,
     requestMoney,

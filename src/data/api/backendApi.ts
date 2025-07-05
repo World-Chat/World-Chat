@@ -8,29 +8,52 @@ const GET_MESSAGES_API = API_BASE_URL + "/getmessages"
 
 // API Functions
 const postConversation = async (users: string[]) => {
+  const body = JSON.stringify({ users });
+  console.log('🔗 POST Conversation URL:', POST_CONVERSATION_API);
+  console.log('📤 Request body:', body);
+  
   const response = await fetch(POST_CONVERSATION_API, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ users }),
-  })
+    body,
+  });
+  
+  console.log('📡 Response status:', response.status);
+  console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
-    throw new Error(`Failed to create conversation: ${response.statusText}`)
+    const errorText = await response.text();
+    console.error('❌ Response error:', errorText);
+    throw new Error(`Failed to create conversation: ${response.status} - ${errorText}`);
   }
   
-  return response.json()
+  const data = await response.json();
+  console.log('📦 Response data:', data);
+  
+  return data;
 }
 
 const getConversations = async (userId: string) => {
-  const response = await fetch(`${GET_CONVERSATION_API}?userId=${encodeURIComponent(userId)}`)
+  const url = `${GET_CONVERSATION_API}?userId=${encodeURIComponent(userId)}`;
+  console.log('🔗 GET Conversations URL:', url);
+  
+  const response = await fetch(url);
+  
+  console.log('📡 Response status:', response.status);
+  console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
   
   if (!response.ok) {
-    throw new Error(`Failed to get conversations: ${response.statusText}`)
+    const errorText = await response.text();
+    console.error('❌ Response error:', errorText);
+    throw new Error(`Failed to get conversations: ${response.status} - ${errorText}`);
   }
   
-  return response.json()
+  const data = await response.json();
+  console.log('📦 Response data:', data);
+  
+  return data;
 }
 
 const postMessage = async (messageData: {
