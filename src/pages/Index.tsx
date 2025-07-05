@@ -5,11 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, Shield, Loader2 } from 'lucide-react';
 import { MessagingAppWithTransactions } from "../components/MessagingAppWithTransactions";
-import { ComethWalletConnect } from "../components/ComethWalletConnect";
 
 const Index = () => {
   const [isVerified, setIsVerified] = useState<boolean>(false);
-  const [isComethConnected, setIsComethConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -95,23 +93,13 @@ const Index = () => {
     }
   };
 
-  const handleComethWalletConnected = () => {
-    console.log('✅ Cometh wallet connected, proceeding to messaging app');
-    setIsComethConnected(true);
-  };
-
-  // Show main app if user is verified and Cometh wallet is connected
-  if (isVerified && isComethConnected) {
+  // Show main app if user is verified
+  if (isVerified) {
     return (
       <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-100">
         <MessagingAppWithTransactions />
       </div>
     );
-  }
-
-  // Show Cometh wallet connection if user is verified but wallet not connected
-  if (isVerified && !isComethConnected) {
-    return <ComethWalletConnect onWalletConnected={handleComethWalletConnected} />;
   }
 
   // Show verification page if user is not verified

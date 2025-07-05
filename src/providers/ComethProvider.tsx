@@ -66,8 +66,25 @@ export const ComethProvider: React.FC<ComethProviderProps> = ({ children }) => {
     );
   } catch (error) {
     console.error('❌ Failed to initialize Cometh Provider:', error);
+    console.log('💡 Falling back to basic QueryClient (Cometh features will be disabled)');
     
-    // Fallback: render children without Cometh provider
-    return <>{children}</>;
+    // Fallback: render children with basic QueryClient and minimal ConnectProvider
+    // This prevents the hooks from crashing when Cometh is not configured
+    const fallbackConfig = {
+      apiKey: 'fallback',
+      networksConfig: [],
+      comethSignerConfig: {},
+    };
+    
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ConnectProvider
+          config={fallbackConfig}
+          queryClient={queryClient}
+        >
+          {children}
+        </ConnectProvider>
+      </QueryClientProvider>
+    );
   }
 }; 
