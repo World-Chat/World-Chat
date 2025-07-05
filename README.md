@@ -1,4 +1,4 @@
-# Chatterbox - Decentralized Messaging App
+# World Chat - Decentralized Messaging App
 
 A decentralized messaging application that combines **Walrus storage** with **smart contract metadata** for secure, censorship-resistant communication. Built with React, TypeScript, and Worldcoin MiniKit.
 
@@ -61,7 +61,7 @@ A decentralized messaging application that combines **Walrus storage** with **sm
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd chatterbox-local-scribe
+   cd x-local-scribe
    ```
 
 2. **Install dependencies**
@@ -306,7 +306,7 @@ For issues and questions:
 
 ## 👥 Users
 
-Chatterbox includes the following specific users for testing:
+World Chat includes the following specific users for testing:
 
 ### User 1: ewan.1300.world.id
 - **ID**: `ewan.1300.world.id`
