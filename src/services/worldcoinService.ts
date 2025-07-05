@@ -51,25 +51,24 @@ export class WorldcoinService {
         return null;
       }
 
-      // Check if MiniKit has user data available
-      if (typeof MiniKit.user !== 'undefined' && MiniKit.user) {
-        // Use MiniKit user data directly
-        const user = MiniKit.user as WorldAppUser;
+      // Use the official method from the documentation: MiniKit.user.username
+      if (MiniKit.user && MiniKit.user.username) {
+        console.log('Found MiniKit.user with username:', MiniKit.user.username);
         
         this.currentUser = {
-          walletAddress: user.walletAddress,
-          username: user.username,
-          profilePictureUrl: user.profilePictureUrl,
-          permissions: user.permissions,
-          optedIntoOptionalAnalytics: user.optedIntoOptionalAnalytics,
-          worldAppVersion: user.worldAppVersion,
-          deviceOS: user.deviceOS,
+          walletAddress: MiniKit.user.walletAddress,
+          username: MiniKit.user.username,
+          profilePictureUrl: MiniKit.user.profilePictureUrl,
+          permissions: MiniKit.user.permissions,
+          optedIntoOptionalAnalytics: MiniKit.user.optedIntoOptionalAnalytics,
+          worldAppVersion: MiniKit.user.worldAppVersion,
+          deviceOS: MiniKit.user.deviceOS,
         };
 
-        console.log('Using MiniKit user data:', this.currentUser);
+        console.log('Successfully authenticated with MiniKit.user:', this.currentUser);
         return this.currentUser;
       } else {
-        console.warn('MiniKit user data not available');
+        console.warn('MiniKit.user not available or missing username');
         return null;
       }
     } catch (error) {
@@ -81,11 +80,16 @@ export class WorldcoinService {
   async getUserByAddress(address: string): Promise<WorldAppUser | null> {
     try {
       if (!this.isInstalled()) {
+        console.log('World App not installed for getUserByAddress');
         return null;
       }
 
-      const user = await MiniKit.getUserByAddress(address);
-      return user;
+      console.log('Getting user by address:', address);
+      // Use the official method from the documentation
+      const worldIdUser = await MiniKit.getUserByAddress(address);
+      console.log('getUserByAddress result:', worldIdUser);
+      
+      return worldIdUser as WorldAppUser;
     } catch (error) {
       console.error('Failed to get user by address:', error);
       return null;

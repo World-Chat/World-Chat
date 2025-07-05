@@ -13,24 +13,102 @@ interface UserProfileProps {
 export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
   const { currentUser, isLoading } = useMessaging();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const worldcoinService = WorldcoinService.getInstance();
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev.slice(-4), `${timestamp}: ${message}`]);
+  };
 
   const handleRefreshAuth = async () => {
     setIsRefreshing(true);
+    addLog('Starting authentication refresh...');
+    
     try {
-      if (worldcoinService.isInstalled()) {
-        await worldcoinService.authenticateWithWallet();
+      const installed = worldcoinService.isInstalled();
+      addLog(`World App installed: ${installed}`);
+      
+      if (installed) {
+        addLog('Attempting wallet authentication...');
+        const user = await worldcoinService.authenticateWithWallet();
+        addLog(`Auth result: ${user ? 'Success' : 'Failed'}`);
+        if (user) {
+          addLog(`User address: ${user.walletAddress || 'None'}`);
+          addLog(`Username: ${user.username || 'None'}`);
+        }
         // Refresh the page to reload user data
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 2000);
       } else {
-        console.log('World App not installed');
+        addLog('World App not installed - using fallback');
       }
     } catch (error) {
+      addLog(`Auth error: ${error instanceof Error ? error.message : 'Unknown'}`);
       console.error('Failed to refresh authentication:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  // Check authentication status on mount
+  React.useEffect(() => {
+    const checkAuthStatus = async () => {
+      addLog('Component mounted - checking auth status...');
+      
+      try {
+        const installed = worldcoinService.isInstalled();
+        addLog(`World App installed: ${installed}`);
+        
+        if (installed) {
+          addLog('Checking for existing user data...');
+          const user = worldcoinService.getCurrentUser();
+          addLog(`Current user: ${user ? 'Found' : 'None'}`);
+          if (user) {
+            addLog(`User address: ${user.walletAddress || 'None'}`);
+            addLog(`Username: ${user.username || 'None'}`);
+          }
+          
+          // Check MiniKit.user according to documentation
+          try {
+            // Use dynamic import to check MiniKit
+            const { MiniKit } = await import('@worldcoin/minikit-js');
+            addLog(`MiniKit imported: true`);
+            addLog(`MiniKit object: ${typeof MiniKit}`);
+            addLog(`MiniKit.user exists: ${!!MiniKit.user}`);
+            
+            if (MiniKit.user) {
+              addLog(`MiniKit.user type: ${typeof MiniKit.user}`);
+              addLog(`MiniKit.user.username: ${MiniKit.user.username || 'None'}`);
+              addLog(`MiniKit.user.walletAddress: ${MiniKit.user.walletAddress || 'None'}`);
+              addLog(`MiniKit.user.profilePictureUrl: ${MiniKit.user.profilePictureUrl || 'None'}`);
+              
+              // Test getUserByAddress if we have a wallet address
+              if (MiniKit.user.walletAddress) {
+                try {
+                  addLog(`Testing getUserByAddress...`);
+                  const userData = await worldcoinService.getUserByAddress(MiniKit.user.walletAddress);
+                  addLog(`getUserByAddress result: ${userData ? 'Success' : 'Failed'}`);
+                  if (userData) {
+                    addLog(`Retrieved username: ${userData.username || 'None'}`);
+                  }
+                } catch (getUserError) {
+                  addLog(`getUserByAddress error: ${getUserError instanceof Error ? getUserError.message : 'Unknown'}`);
+                }
+              }
+            } else {
+              addLog('MiniKit.user is null/undefined');
+            }
+          } catch (importError) {
+            addLog(`Failed to import MiniKit: ${importError instanceof Error ? importError.message : 'Unknown'}`);
+          }
+        }
+      } catch (error) {
+        addLog(`Check error: ${error instanceof Error ? error.message : 'Unknown'}`);
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
 
   if (isLoading) {
     return (
@@ -102,6 +180,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({ onContinue }) => {
               {isDesktopUser ? 'Desktop Mode' : 'World App Connected'}
             </Badge>
           </div>
+
+          {/* Debug Logs */}
+          {debugLogs.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <label className="text-sm font-medium text-gray-700">Debug Logs</label>
+              </div>
+              <div className="p-3 bg-gray-900 rounded-lg border max-h-32 overflow-y-auto">
+                {debugLogs.map((log, index) => (
+                  <p key={index} className="text-xs text-green-400 font-mono break-all">
+                    {log}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-3">

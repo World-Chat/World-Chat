@@ -69,9 +69,13 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       // Try to authenticate with World App using proper wallet auth
       if (worldcoinService.isInstalled()) {
         try {
+          console.log('World App detected, attempting authentication...');
           const authenticatedUser = await worldcoinService.authenticateWithWallet();
+          console.log('Authentication result:', authenticatedUser);
           
           if (authenticatedUser && authenticatedUser.walletAddress) {
+            console.log('Using authenticated user:', authenticatedUser.walletAddress, authenticatedUser.username);
+            
             const currentUserData: User = {
               id: authenticatedUser.walletAddress,
               username: authenticatedUser.username || 'Unknown User',
@@ -86,10 +90,14 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
             // Load conversations after user is set
             await loadConversations(currentUserData);
             return;
+          } else {
+            console.warn('Authentication succeeded but no wallet address found');
           }
         } catch (authError) {
           console.warn('World App authentication failed:', authError);
         }
+      } else {
+        console.log('World App not installed');
       }
       
       // If we don't have a real World App user but have stored data, use that
