@@ -61,9 +61,18 @@ export class WorldcoinService {
   isInstalled(): boolean {
     // Check if MiniKit is available and installed
     try {
-      if (typeof MiniKit !== 'undefined' && MiniKit.isInstalled) {
-        return MiniKit.isInstalled();
+      console.log('MiniKit check:', {
+        miniKitExists: typeof MiniKit !== 'undefined',
+        isInstalledExists: typeof MiniKit !== 'undefined' && typeof MiniKit.isInstalled === 'function',
+        miniKitUser: typeof MiniKit !== 'undefined' ? MiniKit.user : 'undefined'
+      });
+      
+      if (typeof MiniKit !== 'undefined' && typeof MiniKit.isInstalled === 'function') {
+        const installed = MiniKit.isInstalled();
+        console.log('MiniKit.isInstalled() returned:', installed);
+        return installed;
       }
+      console.log('MiniKit not available or isInstalled is not a function');
       return false;
     } catch (error) {
       console.warn('MiniKit not available:', error);
@@ -131,11 +140,22 @@ export class WorldcoinService {
 
   getCurrentUser() {
     // Use real MiniKit if available and installed
-    if (this.isInstalled() && MiniKit.user) {
+    const installed = this.isInstalled();
+    const hasUser = typeof MiniKit !== 'undefined' && MiniKit.user;
+    
+    console.log('getCurrentUser check:', {
+      installed,
+      hasUser,
+      miniKitUser: hasUser ? MiniKit.user : 'no user'
+    });
+    
+    if (installed && hasUser) {
+      console.log('Using real MiniKit user:', MiniKit.user);
       return MiniKit.user;
     }
     
     // Fallback to mock for desktop testing
+    console.log('Using fallback mock user');
     return {
       walletAddress: '0x1234567890123456789012345678901234567890',
       username: 'Desktop User',
