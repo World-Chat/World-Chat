@@ -250,7 +250,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Worldcoin** for human verification technology 
 - **Walrus** for decentralized storage infrastructure
 - **WorldChain** for the blockchain platform 
-- **Cometh** for Safe wallet integration
+- **Cometh** for Safe wallet integration (the idea was to use Session keys for a better workflow)
 
 ---
 
