@@ -41,7 +41,6 @@ interface MessagingContextType {
   selectConversation: (conversationId: string) => void;
   searchMessages: (query: string) => Promise<Message[]>;
   loadMessages: (conversationId: string) => Promise<void>;
-  loadConversations: () => Promise<void>;
   isCreatingConversation: boolean;
 }
 
@@ -118,9 +117,17 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       
       setConversations(convertedConversations);
       addLog(`✅ Successfully converted and set ${convertedConversations.length} conversations`);
+      addLog(`📋 Conversation IDs: ${convertedConversations.map(c => c.id.slice(0, 8)).join(', ')}`);
     }
   }, [data, currentUser]);
 
+  // Debug: Track conversations state changes
+  useEffect(() => {
+    addLog(`🔄 Conversations state updated: ${conversations.length} conversations`);
+    if (conversations.length > 0) {
+      addLog(`📋 Current conversation IDs in state: ${conversations.map(c => c.id.slice(0, 8)).join(', ')}`);
+    }
+  }, [conversations]);
 
   const walrusService = WalrusMessageService.getInstance();
   const worldcoinService = WorldcoinService.getInstance();
@@ -136,8 +143,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       // Validate the new user data
       if (userData.id && userData.username && userData.address) {
         setCurrentUser(userData);
-        // Reload conversations with the new user
-        loadConversations(userData);
+        // useQuery will automatically refetch when currentUser changes
+        addLog('🔄 User updated, useQuery will refetch conversations automatically');
       }
     };
     
@@ -171,9 +178,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
             console.log('✅ Stored user data is valid, using it');
             setCurrentUser(userData);
             
-            // Load conversations after user is set
-            await loadConversations(userData);
-            console.log('✅ Conversations loaded for stored user');
+            // useQuery will automatically fetch conversations when currentUser is set
+            addLog('✅ User set, useQuery will fetch conversations automatically');
             return;
           } else {
             console.warn('❌ Stored user data is missing required fields:', {
@@ -212,8 +218,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
             // User data is already stored in localStorage by WorldcoinService
             setCurrentUser(currentUserData);
             
-            // Load conversations after user is set
-            await loadConversations(currentUserData);
+            // useQuery will automatically fetch conversations when currentUser is set
+            addLog('✅ World App user set, useQuery will fetch conversations automatically');
             return;
           } else {
             console.warn('Authentication succeeded but no wallet address found');
@@ -234,8 +240,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       };
       setCurrentUser(fakeUser);
       
-      // Load conversations after user is set
-      await loadConversations(fakeUser);
+      // useQuery will automatically fetch conversations when currentUser is set
+      addLog('✅ Fallback user set, useQuery will fetch conversations automatically');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize app');
@@ -814,7 +820,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     selectConversation,
     searchMessages,
     loadMessages,
-    loadConversations,
     isCreatingConversation,
   };
 
