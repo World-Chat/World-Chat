@@ -55,7 +55,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   };
 
   const renderPaymentRequest = () => {
-    const canRespond = !isOwnMessage && message.requestStatus === 'pending';
+    const canRespond = !isOwnMessage && (message.requestStatus === 'pending' || !message.requestStatus);
     const isAccepted = message.requestStatus === 'accepted';
     const isDeclined = message.requestStatus === 'declined';
 

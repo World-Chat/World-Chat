@@ -161,6 +161,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
                       msg.type === 'request_payment' ? 'payment_request' : 'text',
           paymentAmount: msg.amount ? parseFloat(msg.amount) : undefined,
           paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
+          // Set requestStatus to 'pending' for payment_request messages
+          requestStatus: msg.type === 'request_payment' ? 'pending' : undefined,
         }));
         
         const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
@@ -378,6 +380,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
                       msg.type === 'request_payment' ? 'payment_request' : 'text',
           paymentAmount: msg.amount ? parseFloat(msg.amount) : undefined,
           paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
+          // Set requestStatus to 'pending' for payment_request messages
+          requestStatus: msg.type === 'request_payment' ? 'pending' : undefined,
         }));
         
         // Sort messages by timestamp - oldest first (top), newest last (bottom)
