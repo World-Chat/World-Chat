@@ -1,28 +1,28 @@
-name = "chatterbox-local-scribe"
+name = "world-chat"
 compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
 
-[build]
-command = "npm run build"
-cwd = "."
-watch_dir = "src"
+[vars]
+VITE_API_BASE_URL = "https://world-chat.pages.dev/"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "chatterbox-local-scribe"
-database_id = "your-database-id-here"
+database_id = "321cf02d-bbea-4fd9-9e13-456e01b48f92"
 
 [env.production]
-name = "chatterbox-local-scribe-production"
+name = "world-chat-production"
 
 [[env.production.d1_databases]]
 binding = "DB"
 database_name = "chatterbox-local-scribe-production"
-database_id = "your-production-database-id-here"
+database_id = "3c7c9b33-1bb6-45c3-b012-4e4e7c6f9a66"
 
 [env.preview]
-name = "chatterbox-local-scribe-preview"
+name = "world-chat-preview"
 
 [[env.preview.d1_databases]]
 binding = "DB"
 database_name = "chatterbox-local-scribe-preview"
-database_id = "your-preview-database-id-here" 
+database_id = "eb113c7c-aa5b-47ba-a397-a054a676f5d2" 
+

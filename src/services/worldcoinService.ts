@@ -1,7 +1,8 @@
 import { PaymentRequest } from '../types/messaging';
 import { initiatePayment, confirmPayment } from '../api/initiate-payment';
+import { MiniKit, PayCommandInput, TokensPayload } from '@worldcoin/minikit-js';
 
-// Mock MiniKit for development
+// Mock MiniKit for development/fallback
 class MockMiniKit {
   user = {
     address: '0x1234567890123456789012345678901234567890',
@@ -10,7 +11,7 @@ class MockMiniKit {
   };
 
   isInstalled() {
-    return true; // Mock as installed for development
+    return false; // Mock as not installed for fallback
   }
 
   async getUserByAddress(address: string) {
@@ -22,7 +23,7 @@ class MockMiniKit {
   }
 
   commandsAsync = {
-    pay: async (payload: any) => {
+    pay: async (payload: PayCommandInput) => {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -37,7 +38,7 @@ class MockMiniKit {
   };
 }
 
-const MiniKit = new MockMiniKit();
+const mockMiniKit = new MockMiniKit();
 
 // Mock token conversion
 const tokenToDecimals = (amount: number, token: string): string => {
@@ -58,12 +59,24 @@ export class WorldcoinService {
   }
 
   isInstalled(): boolean {
-    return MiniKit.isInstalled();
+    // Check if MiniKit is available and installed
+    try {
+      if (typeof MiniKit !== 'undefined' && MiniKit.isInstalled) {
+        return MiniKit.isInstalled();
+      }
+      return false;
+    } catch (error) {
+      console.warn('MiniKit not available:', error);
+      return false;
+    }
   }
 
   async getUserByAddress(address: string) {
     try {
-      return await MiniKit.getUserByAddress(address);
+      if (this.isInstalled() && MiniKit.getUserByAddress) {
+        return await MiniKit.getUserByAddress(address);
+      }
+      return await mockMiniKit.getUserByAddress(address);
     } catch (error) {
       console.error('Failed to get user by address:', error);
       throw error;
@@ -79,13 +92,13 @@ export class WorldcoinService {
     }
   }
 
-  async sendPayment(paymentRequest: PaymentRequest): Promise<any> {
+  async sendPayment(paymentRequest: PaymentRequest): Promise<unknown> {
     try {
-      const payload = {
+      const payload: PayCommandInput = {
         reference: paymentRequest.reference,
         to: paymentRequest.to,
         tokens: paymentRequest.tokens.map(token => ({
-          symbol: token.symbol,
+          symbol: token.symbol as TokensPayload['symbol'],
           token_amount: token.token_amount,
         })),
         description: paymentRequest.description,
@@ -103,7 +116,7 @@ export class WorldcoinService {
     }
   }
 
-  async confirmPayment(payload: any): Promise<{ success: boolean }> {
+  async confirmPayment(payload: unknown): Promise<{ success: boolean }> {
     try {
       return await confirmPayment(payload);
     } catch (error) {
@@ -117,6 +130,12 @@ export class WorldcoinService {
   }
 
   getCurrentUser() {
-    return MiniKit.user;
+    // Use real MiniKit if available and installed
+    if (this.isInstalled() && MiniKit.user) {
+      return MiniKit.user;
+    }
+    
+    // Fallback to mock for desktop testing
+    return mockMiniKit.user;
   }
 } 
