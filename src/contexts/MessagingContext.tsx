@@ -91,34 +91,63 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   })
 
   useEffect(() => {
-    if (data && currentUser) {
-      addLog(`🔄 Converting ${data.conversations.length} conversations to frontend format`);
-      
-      // Convert backend conversations to frontend format
-      const convertedConversations: Conversation[] = data.conversations.map((conv) => ({
-        id: conv.id,
-        participants: conv.users.map((userId: string) => {
-          // If it's the current user, use their data
-          if (userId === currentUser.id) {
-            return currentUser;
-          }
-          // For other users, create a placeholder user
+    const convertConversations = async () => {
+      if (data && currentUser) {
+        addLog(`🔄 Converting ${data.conversations.length} conversations to frontend format`);
+        
+        // Convert backend conversations to frontend format with real user data
+        const convertedConversations: Conversation[] = await Promise.all(
+        data.conversations.map(async (conv) => {
+          const participants = await Promise.all(
+            conv.users.map(async (userId: string) => {
+              // If it's the current user, use their data
+              if (userId === currentUser.id) {
+                return currentUser;
+              }
+              
+              // Try to fetch real user data from World App
+              try {
+                const worldAppUser = await worldcoinService.getUserByAddress(userId);
+                if (worldAppUser && worldAppUser.username) {
+                  addLog(`✅ Found real user data for ${userId.slice(0, 8)}: ${worldAppUser.username}`);
+                  return {
+                    id: userId,
+                    username: worldAppUser.username,
+                    address: userId,
+                    profilePicture: worldAppUser.profilePictureUrl || 'https://via.placeholder.com/40',
+                  };
+                }
+              } catch (error) {
+                addLog(`⚠️ Could not fetch user data for ${userId.slice(0, 8)}, using fallback`);
+              }
+              
+              // Fallback to placeholder user
+              return {
+                id: userId,
+                username: `User ${userId.slice(0, 6)}`,
+                address: userId,
+                profilePicture: 'https://via.placeholder.com/40',
+              };
+            })
+          );
+          
           return {
-            id: userId,
-            username: `User ${userId.slice(0, 6)}`,
-            address: userId,
-            profilePicture: 'https://via.placeholder.com/40',
+            id: conv.id,
+            participants,
+            unreadCount: 0,
+            createdAt: new Date(conv.createdAt),
+            updatedAt: new Date(conv.updatedAt),
           };
-        }),
-        unreadCount: 0,
-        createdAt: new Date(conv.createdAt),
-        updatedAt: new Date(conv.updatedAt),
-      }));
+        })
+      );
       
-      setConversations(convertedConversations);
-      addLog(`✅ Successfully converted and set ${convertedConversations.length} conversations`);
-      addLog(`📋 Conversation IDs: ${convertedConversations.map(c => c.id.slice(0, 8)).join(', ')}`);
-    }
+        setConversations(convertedConversations);
+        addLog(`✅ Successfully converted and set ${convertedConversations.length} conversations`);
+        addLog(`📋 Conversation IDs: ${convertedConversations.map(c => c.id.slice(0, 8)).join(', ')}`);
+      }
+    };
+    
+    convertConversations();
   }, [data, currentUser]);
 
   // Debug: Track conversations state changes
@@ -128,6 +157,64 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       addLog(`📋 Current conversation IDs in state: ${conversations.map(c => c.id.slice(0, 8)).join(', ')}`);
     }
   }, [conversations]);
+
+  // Real-time message polling
+  useEffect(() => {
+    if (!currentConversation) return;
+
+    addLog(`⏰ Starting real-time polling for conversation ${currentConversation.id.slice(0, 8)}`);
+    
+    const pollMessages = async () => {
+      try {
+        const response = await backendApi.getMessages(currentConversation.id);
+        const backendMessages = response.messages || [];
+        
+        // Convert and sort messages
+        const messages: Message[] = backendMessages.map((msg: {
+          id: string;
+          conversationId: string;
+          sender: string;
+          content?: string;
+          amount?: string;
+          currency?: string;
+          timestamp: string;
+          type: string;
+        }) => ({
+          id: msg.id,
+          conversationId: msg.conversationId,
+          senderId: msg.sender,
+          content: msg.content || `${msg.type === 'send_payment' ? 'Sent' : msg.type === 'request_payment' ? 'Requested' : ''} ${msg.amount || ''} ${msg.currency || ''}`.trim(),
+          timestamp: new Date(msg.timestamp),
+          messageType: msg.type === 'text' ? 'text' : 
+                      msg.type === 'send_payment' ? 'payment' : 
+                      msg.type === 'request_payment' ? 'payment_request' : 'text',
+          paymentAmount: msg.amount ? parseFloat(msg.amount) : undefined,
+          paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
+        }));
+        
+        const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        
+        // Only update if we have new messages
+        setMessages(prev => {
+          if (prev.length !== sortedMessages.length) {
+            addLog(`🔔 New messages detected: ${sortedMessages.length - prev.length} new messages`);
+            return sortedMessages;
+          }
+          return prev;
+        });
+      } catch (error) {
+        // Silently fail polling to avoid spam
+      }
+    };
+
+    // Poll every 3 seconds
+    const interval = setInterval(pollMessages, 3000);
+
+    return () => {
+      addLog(`⏹️ Stopped real-time polling for conversation ${currentConversation.id.slice(0, 8)}`);
+      clearInterval(interval);
+    };
+  }, [currentConversation]);
 
   const walrusService = WalrusMessageService.getInstance();
   const worldcoinService = WorldcoinService.getInstance();
@@ -334,13 +421,20 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           paymentToken: msg.currency as 'WLD' | 'USDC' | undefined,
         }));
         
-        setMessages(messages);
+        // Sort messages by timestamp - oldest first (top), newest last (bottom)
+        const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        addLog(`📝 Loaded ${sortedMessages.length} messages, sorted oldest to newest`);
+        
+        setMessages(sortedMessages);
       } catch (backendError) {
         console.warn('Failed to load messages from backend, using fallback:', backendError);
         
         // Fallback to Walrus service if backend is not available
         const conversationMessages = await walrusService.getMessages(conversationId);
-        setMessages(conversationMessages.reverse()); // Show oldest first
+        // Sort messages by timestamp - oldest first (top), newest last (bottom)
+        const sortedMessages = conversationMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+        addLog(`📝 Fallback: Loaded ${sortedMessages.length} messages from Walrus, sorted oldest to newest`);
+        setMessages(sortedMessages);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load messages');
