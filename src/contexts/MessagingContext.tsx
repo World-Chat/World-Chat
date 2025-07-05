@@ -69,9 +69,8 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const [logs, setLogs] = useState<string[]>([]);
 
   const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `${timestamp}: ${message}`]);
-    console.log(`📝 ${timestamp}: ${message}`);
+    // Simplified logging - only for critical events
+    console.log(message);
   };
 
   const clearLogs = () => {
@@ -80,10 +79,7 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
 
   const { data, refetch } = useQuery<GetConversationsResponse>({
     queryFn: async () => {
-      addLog(`🔄 Fetching conversations for user: ${currentUser?.id}`);
       const result = await backendApi.getConversations(currentUser?.id || "");
-      addLog(`✅ Received ${result.conversations.length} conversations`);
-      addLog(`📊 API Response: ${JSON.stringify(result, null, 2)}`);
       return result;
     },
     queryKey: ["getConversations", currentUser?.id],
@@ -93,8 +89,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   useEffect(() => {
     const convertConversations = async () => {
       if (data && currentUser) {
-        addLog(`🔄 Converting ${data.conversations.length} conversations to frontend format`);
-        
         // Convert backend conversations to frontend format with real user data
         const convertedConversations: Conversation[] = await Promise.all(
         data.conversations.map(async (conv) => {
@@ -105,21 +99,20 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
                 return currentUser;
               }
               
-              // Try to fetch real user data from World App
-              try {
-                const worldAppUser = await worldcoinService.getUserByAddress(userId);
-                if (worldAppUser && worldAppUser.username) {
-                  addLog(`✅ Found real user data for ${userId.slice(0, 8)}: ${worldAppUser.username}`);
-                  return {
-                    id: userId,
-                    username: worldAppUser.username,
-                    address: userId,
-                    profilePicture: worldAppUser.profilePictureUrl || 'https://via.placeholder.com/40',
-                  };
-                }
-              } catch (error) {
-                addLog(`⚠️ Could not fetch user data for ${userId.slice(0, 8)}, using fallback`);
-              }
+                             // Try to fetch real user data from World App
+               try {
+                 const worldAppUser = await worldcoinService.getUserByAddress(userId);
+                 if (worldAppUser && worldAppUser.username) {
+                   return {
+                     id: userId,
+                     username: worldAppUser.username,
+                     address: userId,
+                     profilePicture: worldAppUser.profilePictureUrl || 'https://via.placeholder.com/40',
+                   };
+                 }
+               } catch (error) {
+                 // Silently fall back to placeholder
+               }
               
               // Fallback to placeholder user
               return {
@@ -142,27 +135,15 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       );
       
         setConversations(convertedConversations);
-        addLog(`✅ Successfully converted and set ${convertedConversations.length} conversations`);
-        addLog(`📋 Conversation IDs: ${convertedConversations.map(c => c.id.slice(0, 8)).join(', ')}`);
       }
     };
     
     convertConversations();
   }, [data, currentUser]);
 
-  // Debug: Track conversations state changes
-  useEffect(() => {
-    addLog(`🔄 Conversations state updated: ${conversations.length} conversations`);
-    if (conversations.length > 0) {
-      addLog(`📋 Current conversation IDs in state: ${conversations.map(c => c.id.slice(0, 8)).join(', ')}`);
-    }
-  }, [conversations]);
-
   // Real-time message polling
   useEffect(() => {
     if (!currentConversation) return;
-
-    addLog(`⏰ Starting real-time polling for conversation ${currentConversation.id.slice(0, 8)}`);
     
     const pollMessages = async () => {
       try {
@@ -194,14 +175,13 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         
         const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
         
-        // Only update if we have new messages
-        setMessages(prev => {
-          if (prev.length !== sortedMessages.length) {
-            addLog(`🔔 New messages detected: ${sortedMessages.length - prev.length} new messages`);
-            return sortedMessages;
-          }
-          return prev;
-        });
+                 // Only update if we have new messages
+         setMessages(prev => {
+           if (prev.length !== sortedMessages.length) {
+             return sortedMessages;
+           }
+           return prev;
+         });
       } catch (error) {
         // Silently fail polling to avoid spam
       }
@@ -210,10 +190,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     // Poll every 3 seconds
     const interval = setInterval(pollMessages, 3000);
 
-    return () => {
-      addLog(`⏹️ Stopped real-time polling for conversation ${currentConversation.id.slice(0, 8)}`);
-      clearInterval(interval);
-    };
+         return () => {
+       clearInterval(interval);
+     };
   }, [currentConversation]);
 
   const walrusService = WalrusMessageService.getInstance();
@@ -231,7 +210,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       if (userData.id && userData.username && userData.address) {
         setCurrentUser(userData);
         // useQuery will automatically refetch when currentUser changes
-        addLog('🔄 User updated, useQuery will refetch conversations automatically');
       }
     };
     
@@ -264,9 +242,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
           if (userData.id && userData.username && userData.address) {
             console.log('✅ Stored user data is valid, using it');
             setCurrentUser(userData);
-            
-            // useQuery will automatically fetch conversations when currentUser is set
-            addLog('✅ User set, useQuery will fetch conversations automatically');
             return;
           } else {
             console.warn('❌ Stored user data is missing required fields:', {
@@ -304,9 +279,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
             
             // User data is already stored in localStorage by WorldcoinService
             setCurrentUser(currentUserData);
-            
-            // useQuery will automatically fetch conversations when currentUser is set
-            addLog('✅ World App user set, useQuery will fetch conversations automatically');
             return;
           } else {
             console.warn('Authentication succeeded but no wallet address found');
@@ -326,9 +298,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         profilePicture: 'https://via.placeholder.com/40',
       };
       setCurrentUser(fakeUser);
-      
-      // useQuery will automatically fetch conversations when currentUser is set
-      addLog('✅ Fallback user set, useQuery will fetch conversations automatically');
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initialize app');
@@ -423,8 +392,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         
         // Sort messages by timestamp - oldest first (top), newest last (bottom)
         const sortedMessages = messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-        addLog(`📝 Loaded ${sortedMessages.length} messages, sorted oldest to newest`);
-        
         setMessages(sortedMessages);
       } catch (backendError) {
         console.warn('Failed to load messages from backend, using fallback:', backendError);
@@ -433,7 +400,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         const conversationMessages = await walrusService.getMessages(conversationId);
         // Sort messages by timestamp - oldest first (top), newest last (bottom)
         const sortedMessages = conversationMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-        addLog(`📝 Fallback: Loaded ${sortedMessages.length} messages from Walrus, sorted oldest to newest`);
         setMessages(sortedMessages);
       }
     } catch (err) {
@@ -542,76 +508,80 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
 
       if (paymentResult && typeof paymentResult === 'object' && 'status' in paymentResult && paymentResult.status === 'success') {
         // Confirm payment
-        await worldcoinService.confirmPayment(paymentResult);
+        const confirmResult = await worldcoinService.confirmPayment(paymentResult);
 
-        // Create payment message via backend API
-        const paymentMessageData = {
-          type: 'send_payment' as const,
-          conversationId,
-          sender: currentUser.id,
-          content: `Sent ${amount} ${token}`,
-          amount: amount.toString(),
-          currency: token,
-        };
-
-        try {
-          const response = await backendApi.postMessage(paymentMessageData);
-          
-          const message: Message = {
-            id: response.id,
-            conversationId: response.conversationId,
-            senderId: response.sender,
-            content: response.content,
-            timestamp: new Date(response.timestamp),
-            messageType: 'payment',
-            paymentAmount: amount,
-            paymentToken: token,
-            paymentReference: reference,
-            paymentStatus: 'success',
-          };
-
-          // Update local state
-          setMessages(prev => [...prev, message]);
-
-          // Update conversation
-          setConversations(prev => 
-            prev.map(conv => 
-              conv.id === conversationId 
-                ? { ...conv, lastMessage: message, updatedAt: new Date() }
-                : conv
-            )
-          );
-        } catch (backendError) {
-          console.warn('Failed to store payment message via backend, using fallback:', backendError);
-          
-          // Fallback to local storage
-          const message: Message = {
-            id: crypto.randomUUID(),
+        if (confirmResult.success) {
+          // Create payment message via backend API
+          const paymentMessageData = {
+            type: 'send_payment' as const,
             conversationId,
-            senderId: currentUser.id,
+            sender: currentUser.id,
             content: `Sent ${amount} ${token}`,
-            timestamp: new Date(),
-            messageType: 'payment',
-            paymentAmount: amount,
-            paymentToken: token,
-            paymentReference: reference,
-            paymentStatus: 'success',
+            amount: amount.toString(),
+            currency: token,
           };
 
-          // Store in Walrus
-          await walrusService.storeMessage(message);
+          try {
+            const response = await backendApi.postMessage(paymentMessageData);
+            
+            const message: Message = {
+              id: response.id,
+              conversationId: response.conversationId,
+              senderId: response.sender,
+              content: response.content,
+              timestamp: new Date(response.timestamp),
+              messageType: 'payment',
+              paymentAmount: amount,
+              paymentToken: token,
+              paymentReference: reference,
+              paymentStatus: 'success',
+            };
 
-          // Update local state
-          setMessages(prev => [...prev, message]);
+            // Update local state
+            setMessages(prev => [...prev, message]);
 
-          // Update conversation
-          setConversations(prev => 
-            prev.map(conv => 
-              conv.id === conversationId 
-                ? { ...conv, lastMessage: message, updatedAt: new Date() }
-                : conv
-            )
-          );
+            // Update conversation
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.id === conversationId 
+                  ? { ...conv, lastMessage: message, updatedAt: new Date() }
+                  : conv
+              )
+            );
+          } catch (backendError) {
+            console.warn('Failed to store payment message via backend, using fallback:', backendError);
+            
+            // Fallback to local storage
+            const message: Message = {
+              id: crypto.randomUUID(),
+              conversationId,
+              senderId: currentUser.id,
+              content: `Sent ${amount} ${token}`,
+              timestamp: new Date(),
+              messageType: 'payment',
+              paymentAmount: amount,
+              paymentToken: token,
+              paymentReference: reference,
+              paymentStatus: 'success',
+            };
+
+            // Store in Walrus
+            await walrusService.storeMessage(message);
+
+            // Update local state
+            setMessages(prev => [...prev, message]);
+
+            // Update conversation
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.id === conversationId 
+                  ? { ...conv, lastMessage: message, updatedAt: new Date() }
+                  : conv
+              )
+            );
+          }
+        } else {
+          throw new Error('Payment confirmation failed');
         }
       } else {
         throw new Error('Payment failed');
@@ -722,8 +692,14 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         throw new Error('Requester not found');
       }
 
-      // Update request status to accepted
-      await walrusService.updateMessageStatus(messageId, 'accepted');
+      // Update request status to accepted first
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, requestStatus: 'accepted' }
+            : msg
+        )
+      );
 
       // Send the actual payment to the requester
       await sendPayment(
@@ -733,15 +709,22 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         conversationId
       );
 
-      // Update the request message status
+      // Update the request status in the backend if available
+      try {
+        await walrusService.updateMessageStatus(messageId, 'accepted');
+      } catch (error) {
+        console.warn('Failed to update message status in backend:', error);
+      }
+
+    } catch (err) {
+      // Revert the optimistic update if payment fails
       setMessages(prev => 
         prev.map(msg => 
           msg.id === messageId 
-            ? { ...msg, requestStatus: 'accepted' }
+            ? { ...msg, requestStatus: 'pending' }
             : msg
         )
       );
-    } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept money request');
     }
   };

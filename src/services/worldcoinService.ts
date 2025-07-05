@@ -1,5 +1,4 @@
 import { PaymentRequest } from '../types/messaging';
-import { initiatePayment, confirmPayment } from '../api/initiate-payment';
 import { MiniKit, PayCommandInput, TokensPayload } from '@worldcoin/minikit-js';
 
 // World App User type from the documentation
@@ -213,7 +212,21 @@ export class WorldcoinService {
 
   async initiatePayment(): Promise<{ id: string }> {
     try {
-      return await initiatePayment();
+      // Call our backend API to initiate payment
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8788/api';
+      const response = await fetch(`${API_BASE_URL}/initiate-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Payment initiation failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return { id: result.id };
     } catch (error) {
       console.error('Failed to initiate payment:', error);
       throw error;
@@ -236,7 +249,10 @@ export class WorldcoinService {
         throw new Error('World App is not installed');
       }
 
+      console.log('Sending payment with payload:', payload);
       const { finalPayload } = await MiniKit.commandsAsync.pay(payload);
+      console.log('Payment result:', finalPayload);
+      
       return finalPayload;
     } catch (error) {
       console.error('Failed to send payment:', error);
@@ -246,7 +262,21 @@ export class WorldcoinService {
 
   async confirmPayment(payload: unknown): Promise<{ success: boolean }> {
     try {
-      return await confirmPayment(payload);
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8788/api';
+      const response = await fetch(`${API_BASE_URL}/confirm-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ payload }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Payment confirmation failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return { success: result.success };
     } catch (error) {
       console.error('Failed to confirm payment:', error);
       throw error;

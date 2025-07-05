@@ -5,6 +5,8 @@ const POST_CONVERSATION_API = API_BASE_URL + "/postconversation"
 const GET_CONVERSATION_API = API_BASE_URL + "/getconversations"
 const POST_MESSAGE_API = API_BASE_URL + "/postmessage"
 const GET_MESSAGES_API = API_BASE_URL + "/getmessages"
+const INITIATE_PAYMENT_API = API_BASE_URL + "/initiate-payment"
+const CONFIRM_PAYMENT_API = API_BASE_URL + "/confirm-payment"
 
 // API Functions
 const postConversation = async (users: string[]) => {
