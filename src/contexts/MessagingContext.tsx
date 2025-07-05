@@ -65,9 +65,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       
       // Check if World App is installed
       if (!worldcoinService.isInstalled()) {
-        // Desktop fallback: create a fake user for testing
+        // Desktop fallback: use the address as the user ID for consistency
         const fakeUser: User = {
-          id: 'desktop-user-' + Math.random().toString(36).substr(2, 9),
+          id: '0x1234567890123456789012345678901234567890',
           username: 'Desktop User',
           address: '0x1234567890123456789012345678901234567890',
           profilePicture: 'https://via.placeholder.com/40',
@@ -79,14 +79,14 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         return;
       }
 
-      // Get current user
+      // Get current user from World App
       const user = worldcoinService.getCurrentUser();
-      if (user) {
+      if (user && user.walletAddress) {
         const currentUserData: User = {
-          id: user.address,
+          id: user.walletAddress,
           username: user.username || 'Unknown User',
-          address: user.address,
-          profilePicture: user.profilePicture,
+          address: user.walletAddress,
+          profilePicture: user.profilePictureUrl || 'https://via.placeholder.com/40',
         };
         setCurrentUser(currentUserData);
         

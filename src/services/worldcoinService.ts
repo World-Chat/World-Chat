@@ -136,6 +136,10 @@ export class WorldcoinService {
     }
     
     // Fallback to mock for desktop testing
-    return mockMiniKit.user;
+    return {
+      walletAddress: '0x1234567890123456789012345678901234567890',
+      username: 'Desktop User',
+      profilePictureUrl: 'https://via.placeholder.com/40',
+    };
   }
 } 
