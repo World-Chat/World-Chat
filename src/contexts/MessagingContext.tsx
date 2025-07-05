@@ -63,13 +63,29 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     try {
       setIsLoading(true);
       
-      // First, check if we have user data stored in localStorage
+      // First, check if we have user data stored in localStorage (from previous authentication)
       const storedUser = localStorage.getItem('world-app-user');
       
-      // Try to authenticate with World App using proper wallet auth
+      if (storedUser) {
+        try {
+          const userData: User = JSON.parse(storedUser);
+          console.log('Using stored authenticated user:', userData.address, userData.username);
+          setCurrentUser(userData);
+          
+          // Load conversations after user is set
+          await loadConversations(userData);
+          return;
+        } catch (parseError) {
+          console.warn('Failed to parse stored user data:', parseError);
+          // Clear invalid stored data
+          localStorage.removeItem('world-app-user');
+        }
+      }
+      
+      // If no stored data, try to authenticate with World App
       if (worldcoinService.isInstalled()) {
         try {
-          console.log('World App detected, attempting authentication...');
+          console.log('World App detected, no stored data - attempting authentication...');
           const authenticatedUser = await worldcoinService.authenticateWithWallet();
           console.log('Authentication result:', authenticatedUser);
           
@@ -98,22 +114,6 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         }
       } else {
         console.log('World App not installed');
-      }
-      
-      // If we don't have a real World App user but have stored data, use that
-      if (storedUser) {
-        try {
-          const userData: User = JSON.parse(storedUser);
-          setCurrentUser(userData);
-          
-          // Load conversations after user is set
-          await loadConversations(userData);
-          return;
-        } catch (parseError) {
-          console.warn('Failed to parse stored user data:', parseError);
-          // Clear invalid stored data
-          localStorage.removeItem('world-app-user');
-        }
       }
       
       // Fallback to desktop user
