@@ -15,9 +15,9 @@ export type WorldAppUser = {
   deviceOS?: string;
 };
 
-// Mock token conversion
+// Token conversion - WLD uses 18 decimals (standard ERC-20), USDC uses 6 decimals
 const tokenToDecimals = (amount: number, token: string): string => {
-  const decimals = token === 'WLD' ? 8 : 6;
+  const decimals = token === 'WLD' ? 18 : 6;
   return (amount * Math.pow(10, decimals)).toString();
 };
 

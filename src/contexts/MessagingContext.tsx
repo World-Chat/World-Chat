@@ -24,17 +24,13 @@ interface MessagingContextType {
   isLoading: boolean;
   error: string | null;
   
-  // Logs
-  logs: string[];
-  addLog: (message: string) => void;
-  clearLogs: () => void;
+
   
   // Actions
   sendMessage: (content: string, conversationId: string) => Promise<void>;
   sendPayment: (amount: number, token: 'WLD' | 'USDC', recipientAddress: string, conversationId: string) => Promise<void>;
   requestMoney: (amount: number, token: 'WLD' | 'USDC', description: string, conversationId: string) => Promise<void>;
   acceptMoneyRequest: (messageId: string, conversationId: string) => Promise<void>;
-  declineMoneyRequest: (messageId: string, conversationId: string) => Promise<void>;
   createConversation: (participants: User[]) => Promise<Conversation>;
   createConversationWithContacts: () => Promise<void>;
   createFakeConversation: () => Promise<void>;
@@ -66,15 +62,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-
   const addLog = (message: string) => {
     // Simplified logging - only for critical events
     console.log(message);
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
   };
 
   const { data, refetch } = useQuery<GetConversationsResponse>({
@@ -587,7 +577,12 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         throw new Error('Payment failed');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send payment');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send payment';
+      setError(errorMessage);
+      
+      // If payment fails, keep the user in the current conversation
+      // The error will be displayed in the UI but user stays in context
+      console.error('Payment failed:', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -725,27 +720,16 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
             : msg
         )
       );
-      setError(err instanceof Error ? err.message : 'Failed to accept money request');
+      
+      const errorMessage = err instanceof Error ? err.message : 'Failed to accept money request';
+      setError(errorMessage);
+      
+      // Keep user in current conversation context, just show error
+      console.error('Money request acceptance failed:', errorMessage);
     }
   };
 
-  const declineMoneyRequest = async (messageId: string, conversationId: string) => {
-    try {
-      // Update request status
-      await walrusService.updateMessageStatus(messageId, 'declined');
 
-      // Update the request message status
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, requestStatus: 'declined' }
-            : msg
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to decline money request');
-    }
-  };
 
   const createConversation = async (participants: User[]): Promise<Conversation> => {
     try {
@@ -883,14 +867,10 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     currentUser,
     isLoading,
     error,
-    logs,
-    addLog,
-    clearLogs,
     sendMessage,
     sendPayment,
     requestMoney,
     acceptMoneyRequest,
-    declineMoneyRequest,
     createConversation,
     createConversationWithContacts,
     createFakeConversation,

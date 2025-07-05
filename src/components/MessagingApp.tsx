@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatInterface } from './ChatInterface';
-import { LogsModal } from './LogsModal';
 import { useMessaging } from '../contexts/MessagingContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Loader2, Terminal } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export const MessagingApp: React.FC = () => {
-  const { isLoading, error, currentConversation, logs, clearLogs } = useMessaging();
+  const { isLoading, error, currentConversation } = useMessaging();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
 
   const toggleMobileSidebar = () => {
     setIsMobileSidebarOpen(!isMobileSidebarOpen);
@@ -69,29 +66,7 @@ export const MessagingApp: React.FC = () => {
         <ChatInterface onToggleMobileSidebar={toggleMobileSidebar} />
       </div>
 
-      {/* Floating Logs Button */}
-      <Button
-        onClick={() => setIsLogsModalOpen(true)}
-        className="fixed bottom-4 right-4 z-30 rounded-full p-3 shadow-lg"
-        variant="outline"
-        size="sm"
-      >
-        <Terminal className="w-4 h-4" />
-        <span className="ml-2">Logs</span>
-        {logs.length > 0 && (
-          <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs">
-            {logs.length}
-          </span>
-        )}
-      </Button>
 
-      {/* Logs Modal */}
-      <LogsModal
-        isOpen={isLogsModalOpen}
-        onClose={() => setIsLogsModalOpen(false)}
-        logs={logs}
-        onClearLogs={clearLogs}
-      />
     </div>
   );
 };

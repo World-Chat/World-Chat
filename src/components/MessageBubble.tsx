@@ -20,7 +20,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   senderAvatar,
 }) => {
-  const { acceptMoneyRequest, declineMoneyRequest, currentUser } = useMessaging();
+  const { acceptMoneyRequest, currentUser } = useMessaging();
 
   const getPaymentStatusIcon = () => {
     switch (message.paymentStatus) {
@@ -54,19 +54,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
-  const handleDeclineRequest = async () => {
-    if (message.id) {
-      await declineMoneyRequest(message.id, message.conversationId);
-    }
-  };
-
   const renderPaymentRequest = () => {
     const canRespond = !isOwnMessage && message.requestStatus === 'pending';
     const isAccepted = message.requestStatus === 'accepted';
     const isDeclined = message.requestStatus === 'declined';
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center space-x-2">
           <Download className="h-4 w-4 text-blue-600" />
           <span className="font-medium text-blue-800">
@@ -77,30 +71,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </div>
         
         <div className="flex items-center justify-between">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-sm font-semibold">
             {message.paymentAmount} {message.paymentToken}
           </Badge>
           <span className="text-xs text-blue-600">
-            {isAccepted ? 'Request accepted' : isDeclined ? 'Request declined' : 'Money request'}
+            {isAccepted ? 'Paid' : isDeclined ? 'Declined' : 'Money request'}
           </span>
         </div>
         
         {canRespond && (
-          <div className="flex space-x-2 mt-2">
+          <div className="flex justify-center mt-3">
             <Button 
               size="sm" 
               onClick={handleAcceptRequest}
-              className="bg-green-500 hover:bg-green-600 text-white"
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2"
             >
-              Accept
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={handleDeclineRequest}
-              className="text-red-500 border-red-500 hover:bg-red-50"
-            >
-              Decline
+              PAY {message.paymentAmount} {message.paymentToken}
             </Button>
           </div>
         )}
