@@ -1,3 +1,6 @@
+chatterbox-local-scribe
+
+
 # Chatterbox - Worldcoin Mini App Messaging
 
 A modern messaging application built as a Worldcoin Mini App that allows users to send messages and money seamlessly. Messages are stored in Walrus for persistent, searchable conversation history.

@@ -6,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
 import { useMessaging } from '../contexts/MessagingContext';
 import { Conversation } from '../types/messaging';
-import { MessageCircle, Send, Plus, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Plus, Loader2, Monitor } from 'lucide-react';
+import { MiniKit } from '@worldcoin/minikit-js';
 
 interface ConversationListProps {
   onMobileClose?: () => void;
@@ -19,6 +20,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
     selectConversation, 
     currentUser, 
     createConversationWithContacts,
+    createFakeConversation,
     isCreatingConversation 
   } = useMessaging();
 
@@ -57,21 +59,42 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Conversations</h2>
-          <Button
-            onClick={createConversationWithContacts}
-            disabled={isCreatingConversation}
-            size="sm"
-            className="flex items-center space-x-1"
-          >
-            {isCreatingConversation ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+          <div className="flex items-center space-x-2">
+            {MiniKit.isInstalled() ? (
+              <Button
+                onClick={createConversationWithContacts}
+                disabled={isCreatingConversation}
+                size="sm"
+                className="flex items-center space-x-1"
+              >
+                {isCreatingConversation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isCreatingConversation ? 'Selecting...' : 'New Chat'}
+                </span>
+              </Button>
             ) : (
-              <Plus className="h-4 w-4" />
+              <Button
+                onClick={createFakeConversation}
+                disabled={isCreatingConversation}
+                size="sm"
+                className="flex items-center space-x-1"
+                variant="outline"
+              >
+                {isCreatingConversation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Monitor className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isCreatingConversation ? 'Creating...' : 'Test Chat'}
+                </span>
+              </Button>
             )}
-            <span className="hidden sm:inline">
-              {isCreatingConversation ? 'Selecting...' : 'New Chat'}
-            </span>
-          </Button>
+          </div>
         </div>
       </div>
       
@@ -82,20 +105,39 @@ export const ConversationList: React.FC<ConversationListProps> = ({ onMobileClos
               <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium text-foreground mb-2">No conversations yet</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Start chatting with your World App contacts
+                {MiniKit.isInstalled() 
+                  ? 'Start chatting with your World App contacts'
+                  : 'Create a test conversation to get started'
+                }
               </p>
-              <Button
-                onClick={createConversationWithContacts}
-                disabled={isCreatingConversation}
-                className="flex items-center space-x-2"
-              >
-                {isCreatingConversation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-                <span>{isCreatingConversation ? 'Selecting Contacts...' : 'Start New Chat'}</span>
-              </Button>
+              {MiniKit.isInstalled() ? (
+                <Button
+                  onClick={createConversationWithContacts}
+                  disabled={isCreatingConversation}
+                  className="flex items-center space-x-2"
+                >
+                  {isCreatingConversation ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  <span>{isCreatingConversation ? 'Selecting Contacts...' : 'Start New Chat'}</span>
+                </Button>
+              ) : (
+                <Button
+                  onClick={createFakeConversation}
+                  disabled={isCreatingConversation}
+                  className="flex items-center space-x-2"
+                  variant="outline"
+                >
+                  {isCreatingConversation ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Monitor className="h-4 w-4" />
+                  )}
+                  <span>{isCreatingConversation ? 'Creating Test Chat...' : 'Create Test Chat'}</span>
+                </Button>
+              )}
             </div>
           ) : (
             conversations.map((conversation) => {

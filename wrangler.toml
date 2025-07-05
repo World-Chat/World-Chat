@@ -6,8 +6,23 @@ command = "npm run build"
 cwd = "."
 watch_dir = "src"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "chatterbox-local-scribe"
+database_id = "your-database-id-here"
+
 [env.production]
 name = "chatterbox-local-scribe-production"
 
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "chatterbox-local-scribe-production"
+database_id = "your-production-database-id-here"
+
 [env.preview]
-name = "chatterbox-local-scribe-preview" 
+name = "chatterbox-local-scribe-preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "chatterbox-local-scribe-preview"
+database_id = "your-preview-database-id-here" 
