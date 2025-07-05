@@ -215,33 +215,11 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         
         setConversations(conversations);
       } catch (backendError) {
-        console.warn('Failed to load conversations from backend, using fallback:', backendError);
+        console.warn('Failed to load conversations from backend:', backendError);
         
-        // Fallback to mock conversations if backend is not available
-        const mockConversations: Conversation[] = [
-          {
-            id: '1',
-            participants: [
-              userToUse,
-              { id: '2', username: 'alice.world', address: '0x1234567890123456789012345678901234567890', profilePicture: 'https://via.placeholder.com/40' }
-            ],
-            unreadCount: 0,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: '2',
-            participants: [
-              userToUse,
-              { id: '3', username: 'bob.world', address: '0x4567890123456789012345678901234567890123', profilePicture: 'https://via.placeholder.com/40' }
-            ],
-            unreadCount: 2,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ];
-        
-        setConversations(mockConversations);
+        // No fallback conversations - start with empty array
+        // User can create new conversations using the "Test Chat" button
+        setConversations([]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
