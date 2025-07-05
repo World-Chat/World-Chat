@@ -1,16 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { MessageBubble } from './MessageBubble';
+import MessageInput from './MessageInput';
 import { useMessaging } from '../contexts/MessagingContext';
-import { Send, DollarSign, Download, MessageCircle, Menu, RefreshCw, Bug } from 'lucide-react';
+import { MessageCircle, Menu, RefreshCw, Bug } from 'lucide-react';
 import { diagnoseIssues } from '../utils/diagnose-issues';
 
 interface ChatInterfaceProps {
@@ -29,14 +24,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     isLoading 
   } = useMessaging();
   
-  const [newMessage, setNewMessage] = useState('');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentToken, setPaymentToken] = useState<'WLD' | 'USDC'>('WLD');
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
-  const [requestAmount, setRequestAmount] = useState('');
-  const [requestToken, setRequestToken] = useState<'WLD' | 'USDC'>('WLD');
-  const [requestDescription, setRequestDescription] = useState('');
   const [isDebugRunning, setIsDebugRunning] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,44 +35,48 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !currentConversation) return;
-    
-    await sendMessage(newMessage, currentConversation.id);
-    setNewMessage('');
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || !currentConversation) return;
+    await sendMessage(text, currentConversation.id);
   };
 
-  const handleSendPayment = async () => {
-    if (!paymentAmount || !currentConversation || !currentUser) return;
+  const handleSendMoney = async (amount: number) => {
+    if (!currentConversation || !currentUser) return;
     
-    const amount = parseFloat(paymentAmount);
-    if (isNaN(amount) || amount <= 0) return;
-
     const otherParticipant = currentConversation.participants.find(p => p.id !== currentUser.id);
     if (!otherParticipant) return;
 
-    await sendPayment(amount, paymentToken, otherParticipant.address, currentConversation.id);
-    setPaymentAmount('');
-    setIsPaymentDialogOpen(false);
+    await sendPayment(amount, 'WLD', otherParticipant.address, currentConversation.id);
+    console.log(`💰 Sent ${amount} WLD to ${otherParticipant.username}`);
   };
 
-  const handleRequestMoney = async () => {
-    if (!requestAmount || !currentConversation || !currentUser) return;
+  const handleRequestMoney = async (amount: number) => {
+    if (!currentConversation || !currentUser) return;
     
-    const amount = parseFloat(requestAmount);
-    if (isNaN(amount) || amount <= 0) return;
-
-    await requestMoney(amount, requestToken, requestDescription, currentConversation.id);
-    setRequestAmount('');
-    setRequestDescription('');
-    setIsRequestDialogOpen(false);
+    await requestMoney(amount, 'WLD', `Money request for ${amount} WLD`, currentConversation.id);
+    console.log(`💸 Requested ${amount} WLD`);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const handleRecurringPayment = async (amount: number, frequency: string) => {
+    if (!currentConversation || !currentUser) return;
+    
+    // For now, just log the recurring payment setup
+    console.log(`🔄 Setting up recurring payment: ${amount} WLD ${frequency}`);
+    
+    // You can implement actual recurring payment logic here
+    const message = `Set up recurring payment: ${amount} WLD ${frequency}`;
+    await sendMessage(message, currentConversation.id);
+  };
+
+  const handleSplitBill = async (amount: number, people: number) => {
+    if (!currentConversation || !currentUser) return;
+    
+    const amountPerPerson = (amount / people).toFixed(2);
+    console.log(`👥 Splitting ${amount} WLD among ${people} people (${amountPerPerson} WLD each)`);
+    
+    // You can implement actual bill splitting logic here
+    const message = `Split bill: ${amount} WLD ÷ ${people} people = ${amountPerPerson} WLD each`;
+    await sendMessage(message, currentConversation.id);
   };
 
   if (!currentConversation) {
@@ -185,116 +176,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
 
       {/* Input Area */}
       <div className="p-3 md:p-4 border-t border-border bg-background">
-        <div className="flex items-center space-x-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
-            disabled={isLoading || !currentUser}
-            className="flex-1"
-          />
-          
-          {/* Request Money Dialog */}
-          <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon" disabled={isLoading || !currentUser}>
-                <Download className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Request Money</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="request-amount">Amount</Label>
-                  <Input
-                    id="request-amount"
-                    type="number"
-                    value={requestAmount}
-                    onChange={(e) => setRequestAmount(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="request-token">Token</Label>
-                  <Select value={requestToken} onValueChange={(value: 'WLD' | 'USDC') => setRequestToken(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WLD">WLD</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="request-description">Description (optional)</Label>
-                  <Textarea
-                    id="request-description"
-                    value={requestDescription}
-                    onChange={(e) => setRequestDescription(e.target.value)}
-                    placeholder="What's this for?"
-                    rows={3}
-                  />
-                </div>
-                <Button onClick={handleRequestMoney} className="w-full" disabled={!requestAmount}>
-                  Request Money
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          
-          {/* Send Payment Dialog */}
-          <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon" disabled={isLoading || !currentUser}>
-                <DollarSign className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Send Payment</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="token">Token</Label>
-                  <Select value={paymentToken} onValueChange={(value: 'WLD' | 'USDC') => setPaymentToken(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WLD">WLD</SelectItem>
-                      <SelectItem value="USDC">USDC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={handleSendPayment} className="w-full" disabled={!paymentAmount}>
-                  Send Payment
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          
-          <Button onClick={handleSendMessage} disabled={!newMessage.trim() || isLoading || !currentUser}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onSendMoney={handleSendMoney}
+          onRequestMoney={handleRequestMoney}
+          onRecurringPayment={handleRecurringPayment}
+          onSplitBill={handleSplitBill}
+        />
       </div>
 
       {/* Debug Button */}

@@ -65,14 +65,14 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
     participants: [MOCK_USERS[0], MOCK_USERS[3]],
     unreadCount: 1,
     createdAt: new Date('2024-01-13T14:15:00Z'),
-    updatedAt: new Date('2024-01-13T18:20:00Z'),
+    updatedAt: new Date('2024-01-13T19:30:00Z'),
     lastMessage: {
-      id: 'msg-3-2',
+      id: 'msg-3-4',
       conversationId: 'conv-3',
       senderId: 'user4',
-      content: 'Can you send me 25 WLD for the conference tickets?',
-      timestamp: new Date('2024-01-13T18:20:00Z'),
-      messageType: 'payment_request'
+      content: 'Split bill: 120 WLD ÷ 4 people = 30.00 WLD each',
+      timestamp: new Date('2024-01-13T19:30:00Z'),
+      messageType: 'text'
     }
   }
 ];
@@ -176,10 +176,26 @@ export const MOCK_MESSAGES: { [conversationId: string]: Message[] } = {
         token: 'WLD',
         description: 'Conference tickets',
         requesterId: 'user4',
-        requesterAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        requesterAddress: '0xabcdefabcdefabcdefabcdefabcdefabcd',
         status: 'pending',
         createdAt: new Date('2024-01-13T18:20:00Z')
       }
+    },
+    {
+      id: 'msg-3-3',
+      conversationId: 'conv-3',
+      senderId: 'user1',
+      content: 'Set up recurring payment: 10 WLD weekly',
+      timestamp: new Date('2024-01-13T19:00:00Z'),
+      messageType: 'text'
+    },
+    {
+      id: 'msg-3-4',
+      conversationId: 'conv-3',
+      senderId: 'user4',
+      content: 'Split bill: 120 WLD ÷ 4 people = 30.00 WLD each',
+      timestamp: new Date('2024-01-13T19:30:00Z'),
+      messageType: 'text'
     }
   ]
 };

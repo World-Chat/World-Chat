@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Send } from "lucide-react";
 import MoneyActions from "./MoneyActions";
@@ -7,9 +6,17 @@ interface MessageInputProps {
   onSendMessage: (text: string) => void;
   onSendMoney: (amount: number) => void;
   onRequestMoney: (amount: number) => void;
+  onRecurringPayment: (amount: number, frequency: string) => void;
+  onSplitBill: (amount: number, people: number) => void;
 }
 
-const MessageInput = ({ onSendMessage, onSendMoney, onRequestMoney }: MessageInputProps) => {
+const MessageInput = ({ 
+  onSendMessage, 
+  onSendMoney, 
+  onRequestMoney, 
+  onRecurringPayment, 
+  onSplitBill 
+}: MessageInputProps) => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +36,12 @@ const MessageInput = ({ onSendMessage, onSendMoney, onRequestMoney }: MessageInp
 
   return (
     <form onSubmit={handleSubmit} className="flex space-x-2 md:space-x-3">
-      <MoneyActions onSendMoney={onSendMoney} onRequestMoney={onRequestMoney} />
+      <MoneyActions 
+        onSendMoney={onSendMoney} 
+        onRequestMoney={onRequestMoney}
+        onRecurringPayment={onRecurringPayment}
+        onSplitBill={onSplitBill}
+      />
       <div className="flex-1">
         <textarea
           value={message}
