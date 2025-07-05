@@ -1,6 +1,24 @@
-# World Chat - Decentralized Messaging App
+# World Chat - A True Human Super App
 
-A decentralized messaging application that combines **Walrus storage** with **smart contract metadata** for secure, censorship-resistant communication. Built with React, TypeScript, and Worldcoin MiniKit.
+A secure and seamless WorldChain MiniApp that combines **human verification**, **decentralized messaging**, and **integrated payments** into one unified experience. Built with React, TypeScript, and Worldcoin MiniKit.
+
+## 🌐 The Problem
+
+Global communication is fragmented and insecure:
+
+- 📩 **Spam & Scams**: Users are overwhelmed with unverified messages and fraudulent content
+- 🔐 **Identity Crisis**: Lack of trust in identity verification during digital interactions  
+- 🧱 **Platform Fragmentation**: Messaging and financial tools scattered across platforms, creating friction
+- 💾 **Centralized Concerns**: Data storage raises privacy, control, and scalability issues
+
+## ✨ The Solution
+
+**World Chat** - A secure and seamless WorldChain MiniApp that:
+
+- ✅ **Leverages World Verification** to ensure messages and transactions come from real, verified humans
+- ✅ **Supports Global Messaging** (email/SMS) both inside and outside the platform (coming soon)
+- ✅ **Stores All Data Efficiently** using Walrus decentralized storage
+- ✅ **Combines Messaging + Payments** into one simple interface
 
 ## 🏗️ Architecture
 
@@ -18,42 +36,45 @@ A decentralized messaging application that combines **Walrus storage** with **sm
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🚀 Features
+## 🚀 Key Features
 
-### Core Messaging
-- **Decentralized Storage**: Messages stored on Walrus network ✅
-- **Smart Contract Metadata**: Message history stored on-chain ✅
-- **Real-time Messaging**: Send and receive messages instantly ✅
-- **Message Types**: Text, payments, and payment requests ✅
+### 🔐 Proof of Humanity
+- **World Verification**: Ensures all users are real, unique, and verified
+- **Spam Elimination**: Eliminates bots, spam, and scams at the root
+- **Trusted Identity**: Every message and transaction comes from verified humans
 
-### Worldcoin Integration
-- **User Verification**: World App verification required ✅
-- **Secure Payments**: Send WLD and USDC tokens ✅
-- **Contact Integration**: Import contacts from World App ✅
-- **Payment Requests**: Request money with accept/decline functionality ✅
-- **Contract Writing**: Store message metadata on-chain using real Worldcoin MiniKit ✅
+### 💬 Decentralized Messaging
+- **Walrus Storage**: Decentralized, scalable, and cost-efficient message storage
+- **Encrypted Content**: All messages encrypted and stored securely
+- **Censorship-resistant**: No central server required
+- **Smart Contract Metadata**: Message history stored on-chain
 
-### Privacy & Security
-- **Encrypted Storage**: Message content encrypted in Walrus ✅
-- **On-chain Verification**: Smart contract ensures data integrity ✅
-- **Censorship-resistant**: No central server required ✅
-- **User Control**: Users own their data and encryption keys ✅
+### 💰 Integrated Payments
+- **Messaging + Payments**: Combined into one seamless UX
+- **WLD & USDC Support**: Send and receive Worldcoin tokens
+- **Payment Requests**: Request money with accept/decline functionality
+- **Real-time Transactions**: Instant payment processing
+
+### 🌍 Global Communication
+- **Cross-platform Messaging**: Works inside and outside the platform
+- **Contact Integration**: Import contacts from World App
+- **Universal Access**: Available to all verified humans worldwide
 
 ## 🛠️ Technology Stack
 
 - **Frontend**: React + TypeScript + Vite
 - **UI**: shadcn/ui components
 - **Storage**: Walrus decentralized storage ✅
-- **Blockchain**: Ethereum smart contracts (Sepolia testnet) ✅
+- **Blockchain**: WorldChain smart contracts (mainnet) ✅
 - **Authentication**: Worldcoin MiniKit ✅
 - **Payments**: Worldcoin payment system ✅
-- **Contract Writing**: Worldcoin MiniKit wallet integration ✅
+- **Human Verification**: World App integration ✅
 
 ## 📋 Prerequisites
 
 - Node.js 18+ 
 - World App installed on your device
-- Ethereum wallet (for smart contract interactions)
+- Worldcoin verification completed
 - **Infura/Alchemy API key** (for smart contract reading)
 
 ## 🚀 Quick Start
@@ -61,7 +82,7 @@ A decentralized messaging application that combines **Walrus storage** with **sm
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd x-local-scribe
+   cd chatterbox-local-scribe
    ```
 
 2. **Install dependencies**
@@ -69,16 +90,17 @@ A decentralized messaging application that combines **Walrus storage** with **sm
    npm install
    ```
 
-3. **Configure RPC endpoint**
+3. **Configure environment variables**
    ```bash
-   # Add your Infura/Alchemy API key to src/services/smartContractService.ts
-   # Replace 'YOUR_INFURA_KEY' with your actual API key
+   # Create .env file with your configuration
+   cp .env.example .env
+   # Add your API keys and contract addresses
    ```
 
 4. **Start the development server**
    ```bash
-npm run dev
-```
+   npm run dev
+   ```
 
 5. **Open your browser**
    Navigate to `http://localhost:5173`
@@ -86,12 +108,11 @@ npm run dev
 ## 🔧 Configuration
 
 ### Smart Contract
-The app uses a deployed smart contract on Sepolia testnet:
-- **Contract Address**: `0xA27F6614c53ce3c4E7ac92A64d03bA1853e3c304` ✅
-- **Network**: Sepolia testnet ✅
+The app uses a deployed smart contract on WorldChain mainnet:
+- **Contract Address**: `0x34bF1A2460190e60e33309BF8c54D9A7c9eCB4B8` ✅
+- **Network**: WorldChain mainnet (chainId 480) ✅
 - **ABI**: Available in `src/abis/messagingContractAbi.ts` ✅
 - **Status**: Deployed and fully integrated ✅
-- **Writing**: Worldcoin MiniKit integration for contract transactions ✅
 
 ### Walrus Storage
 - **Network**: Testnet ✅
@@ -110,7 +131,7 @@ The app uses a deployed smart contract on Sepolia testnet:
 - Select a conversation or create a new one
 - Type your message and press Enter
 - Message is stored in Walrus ✅
-- Metadata stored in smart contract using Worldcoin MiniKit ✅
+- Metadata stored in smart contract ✅
 
 ### 3. **Sending Payments**
 - Click the payment button in a conversation
@@ -129,7 +150,7 @@ The app uses a deployed smart contract on Sepolia testnet:
 ### Message Flow
 1. **User sends message** → Frontend creates message object ✅
 2. **Walrus storage** → Encrypted message stored as blob ✅
-3. **Smart contract** → Metadata stored on-chain using Worldcoin MiniKit ✅
+3. **Smart contract** → Metadata stored on-chain ✅
 4. **UI update** → Message appears in conversation ✅
 
 ### Message Retrieval
@@ -138,7 +159,7 @@ The app uses a deployed smart contract on Sepolia testnet:
 3. **Frontend** → Display messages in chronological order ✅
 
 ### Smart Contract Functions
-- `storeMessage()` - Store message metadata using Worldcoin MiniKit ✅
+- `storeMessage()` - Store message metadata ✅
 - `getUserMessages()` - Get user's message history ✅
 - `getConversationMessages()` - Get conversation messages ✅
 - `getUserMessagesByType()` - Search by message type ✅
@@ -175,10 +196,10 @@ await testContractIntegration();
 ## 🚨 Important Notes
 
 ### Real Transactions
-- **Status**: ✅ **Working (contract whitelisted in Worldcoin Developer Portal)**
-- **Contract**: `0x063816286ae3312e759f80Afdb10C8879b30688D`
-- **App ID**: `app_633eda004e32e457ef84472c6ef7714c`
-- **Chain**: Worldcoin Sepolia (4801)
+- **Status**: ✅ **Working (contract deployed on WorldChain mainnet)**
+- **Contract**: `0x34bF1A2460190e60e33309BF8c54D9A7c9eCB4B8`
+- **Chain**: WorldChain mainnet (480)
+- **RPC**: `https://worldchain.drpc.org`
 
 ### Testing
 - All tests will now show real transaction results
@@ -196,147 +217,41 @@ If you encounter the `invalid_contract` error from MiniKit, it means the smart c
 ```
 Error: invalid_contract
 Description: Transaction contains unrecognized contract address
-Contract: 0x063816286ae3312e759f80Afdb10C8879b30688D
-App ID: app_633eda004e32e457ef84472c6ef7714c
+Contract: 0x34bF1A2460190e60e33309BF8c54D9A7c9eCB4B8
 ```
 
-### Solutions
+### Solution
+1. **Register Contract**: Add your contract address to the Worldcoin Developer Portal
+2. **Wait for Approval**: Worldcoin team will review and approve your contract
+3. **Test Again**: Once approved, transactions will work normally
 
-#### 1. **Development Mode (Recommended for Testing)**
-The app automatically handles this error in development mode by returning mock transaction success. This allows you to test the full flow without contract registration.
+## 🌟 The Secret Sauce
 
-#### 2. **Register Contract with MiniKit**
-To use real MiniKit transactions:
-1. Open the World App
-2. Go to MiniKit settings
-3. Add contract address: `0x063816286ae3312e759f80Afdb10C8879b30688D`
-4. Select chain: Worldcoin Sepolia (4801)
-5. Confirm registration
+**World Verification Integration**: Uses World's human verification to ensure all users are real, unique, and verified — eliminating spam, bots, and scams at the root.
 
-#### 3. **Alternative Transaction Methods**
-If contract registration is not possible:
-- Use direct blockchain transactions with MetaMask
-- Implement custom wallet integration
-- Use Web3 providers like WalletConnect
-- Contact Worldcoin support for contract whitelisting
+**Decentralized Storage**: Integrates Walrus for decentralized, scalable, and cost-efficient message and data storage — solving traditional messaging storage constraints.
 
-### Testing Contract Registration
-```bash
-# Run the contract registration test
-cd src/utils
-node test-minikit-contract-registration.js
-```
-
-### Enhanced Error Handling
-The app now includes enhanced error handling that:
-- ✅ Detects `invalid_contract` errors
-- ✅ Provides detailed error analysis
-- ✅ Offers registration guidance
-- ✅ Suggests alternative solutions
-- ✅ Returns mock success in development mode
-
-## 🔒 Security Considerations
-
-### Encryption
-- All message content encrypted before Walrus storage ✅
-- Only metadata (blob IDs, timestamps) stored on-chain ✅
-- Users control their own encryption keys ✅
-
-### Access Control
-- Smart contract validates sender addresses ✅
-- Only authorized users can store message records ✅
-- Message retrieval requires proper authentication ✅
-
-### Data Integrity
-- Walrus provides cryptographic guarantees ✅
-- Smart contract ensures metadata integrity ✅
-- On-chain verification of message ownership ✅
-
-## 🚀 Deployment
-
-### Frontend Deployment
-```bash
-npm run build
-# Deploy dist/ folder to your hosting provider
-```
-
-### Smart Contract Deployment
-The contract is already deployed at `0xA27F6614c53ce3c4E7ac92A64d03bA1853e3c304` on Sepolia ✅
-
-## 🔮 Next Steps for Full Integration
-
-### Advanced Features (Priority 1)
-1. **Message indexing** - Efficient message search and retrieval
-2. **Conversation management** - Create and manage conversations
-3. **Message threading** - Reply to specific messages
-4. **File attachments** - Store files in Walrus
-
-### Production Features (Priority 2)
-1. **Real Worldcoin MiniKit integration** - Replace mock with actual MiniKit
-2. **Transaction monitoring** - Track transaction status in real-time
-3. **Gas optimization** - Optimize gas costs for contract interactions
-4. **Error handling** - Comprehensive error handling for all operations
+**Unified UX**: Combines messaging + payments into one seamless interface, eliminating the need for multiple apps and platforms.
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🆘 Support
+## 🙏 Acknowledgments
 
-For issues and questions:
-- Check the [DECENTRALIZED_MESSAGING.md](./DECENTRALIZED_MESSAGING.md) for architecture details
-- Review the smart contract code in `src/contracts/MessagingContract.sol`
-- Test the system using `src/utils/testDecentralizedMessaging.ts`
-- Test contract integration using `src/utils/testContractIntegration.ts`
-- Test Worldcoin MiniKit integration using `src/utils/integrationExample.ts`
+- **Worldcoin** for human verification technology 
+- **Walrus** for decentralized storage infrastructure
+- **WorldChain** for the blockchain platform 
+- **Cometh** for Safe wallet integration
 
 ---
 
-**Built with ❤️ for decentralized communication**
-
-**Status**: ✅ Walrus storage working, ✅ Smart contract reading working, ✅ Smart contract writing with real Worldcoin MiniKit working
-
-## 👥 Users
-
-World Chat includes the following specific users for testing:
-
-### User 1: ewan.1300.world.id
-- **ID**: `ewan.1300.world.id`
-- **Username**: `ewan.1300.world.id`
-- **Wallet**: `0xa882a2af989de54330f994cf626ea7f5d5edc2fc`
-- **Avatar**: Green avatar with "E"
-
-### User 2: mathieu.3580.world.id
-- **ID**: `mathieu.3580.world.id`
-- **Username**: `mathieu.3580.world.id`
-- **Wallet**: `0x582be5da7d06b2bf6d89c5b4499491c5990fafe4`
-- **Avatar**: Orange avatar with "M"
-
-All users have full permissions for messaging, payments, and payment requests.
-
-## 🎯 Current Status
-
-### ✅ Working Components
-- **Walrus Storage**: ✅ Fully functional
-- **Smart Contract Reading**: ✅ Working (contract deployed at `0x063816286ae3312e759f80Afdb10C8879b30688D`)
-- **Smart Contract Writing**: ✅ **Working (contract whitelisted in Worldcoin Developer Portal)**
-- **Worldcoin Sepolia Chain**: ✅ Connected via `https://worldchain-sepolia.drpc.org`
-- **Message Encryption**: ✅ Implemented
-- **User Management**: ✅ Mock users configured
-- **MiniKit Integration**: ✅ **Functional (contract registered)**
-
-### 🎉 **Real Transactions Now Working!**
-
-**Status**: ✅ **Contract whitelisted in Worldcoin Developer Portal**
-- **Contract**: `0x063816286ae3312e759f80Afdb10C8879b30688D`
-- **App ID**: `app_633eda004e32e457ef84472c6ef7714c`
-- **Chain**: Worldcoin Sepolia (4801)
-- **Real Transactions**: ✅ **Working**
+**World Chat** - Where verified humans connect, communicate, and transact securely. 🌍💬💰
