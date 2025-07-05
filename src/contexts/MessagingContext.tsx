@@ -419,14 +419,36 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         },
       };
 
-      // Store payment message in decentralized system via Cometh
-      const { walrusResult, contractTxHash } = await decentralizedService.sendMessage(
+      // Store payment message in decentralized system via Cometh with MongoDB tracking
+      const { walrusResult, contractTxHash, mongoDBRecordId } = await decentralizedService.sendMessage(
         paymentMessage,
         currentUser.address,
         transactionService
       );
 
-      console.log(`Payment message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}`);
+      console.log(`Payment message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}, MongoDB Record: ${mongoDBRecordId}`);
+
+      // Also track payment separately in MongoDB
+      if (decentralizedService.isMongoDBAvailable()) {
+        try {
+          const paymentId = crypto.randomUUID();
+          const { transactionHash, mongoDBRecordId: paymentMongoRecordId } = await decentralizedService.sendPayment(
+            paymentId,
+            paymentMessage.id,
+            conversationId,
+            currentUser.id,
+            currentUser.address,
+            recipientAddress,
+            amount,
+            token,
+            `Payment from ${currentUser.username}`,
+            transactionService
+          );
+          console.log(`💰 Payment tracked in MongoDB: ${paymentMongoRecordId}, TX: ${transactionHash}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to track payment in MongoDB:', error);
+        }
+      }
 
       // Update local state
       setMessages(prev => [...prev, paymentMessage]);
@@ -475,14 +497,34 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         moneyRequestData: moneyRequest,
       };
 
-      // Store money request message in decentralized system via Cometh
-      const { walrusResult, contractTxHash } = await decentralizedService.sendMessage(
+      // Store money request message in decentralized system via Cometh with MongoDB tracking
+      const { walrusResult, contractTxHash, mongoDBRecordId } = await decentralizedService.sendMessage(
         requestMessage,
         currentUser.address,
         transactionService
       );
 
-      console.log(`Money request stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}`);
+      console.log(`Money request message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}, MongoDB Record: ${mongoDBRecordId}`);
+
+      // Also track payment request separately in MongoDB
+      if (decentralizedService.isMongoDBAvailable()) {
+        try {
+          const requestId = crypto.randomUUID();
+          const { mongoDBRecordId: requestMongoRecordId } = await decentralizedService.requestMoney(
+            requestId,
+            requestMessage.id,
+            conversationId,
+            currentUser.id,
+            currentUser.address,
+            amount,
+            token,
+            description
+          );
+          console.log(`📋 Payment request tracked in MongoDB: ${requestMongoRecordId}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to track payment request in MongoDB:', error);
+        }
+      }
 
       // Update local state
       setMessages(prev => [...prev, requestMessage]);
@@ -567,14 +609,48 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         },
       };
 
-      // Store acceptance message in decentralized system via Cometh
-      const { walrusResult, contractTxHash } = await decentralizedService.sendMessage(
+      // Store acceptance message in decentralized system via Cometh with MongoDB tracking
+      const { walrusResult, contractTxHash, mongoDBRecordId } = await decentralizedService.sendMessage(
         acceptanceMessage,
         currentUser.address,
         transactionService
       );
 
-      console.log(`Acceptance message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}`);
+      console.log(`Acceptance message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}, MongoDB Record: ${mongoDBRecordId}`);
+
+      // Track payment in MongoDB
+      if (decentralizedService.isMongoDBAvailable()) {
+        try {
+          const paymentId = crypto.randomUUID();
+          const { transactionHash, mongoDBRecordId: paymentMongoRecordId } = await decentralizedService.sendPayment(
+            paymentId,
+            acceptanceMessage.id,
+            conversationId,
+            currentUser.id,
+            currentUser.address,
+            requesterAddress,
+            amount,
+            token,
+            `Payment for money request`,
+            transactionService
+          );
+          console.log(`💰 Payment tracked in MongoDB: ${paymentMongoRecordId}, TX: ${transactionHash}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to track payment in MongoDB:', error);
+        }
+      }
+
+      // Update payment request status in MongoDB
+      if (decentralizedService.isMongoDBAvailable()) {
+        try {
+          // Find the request ID from the original message
+          const requestId = requestMessage.moneyRequestData.id;
+          await decentralizedService.acceptMoneyRequest(requestId, paymentResult.transactionHash);
+          console.log(`✅ Payment request status updated in MongoDB: ${requestId}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to update payment request status in MongoDB:', error);
+        }
+      }
 
       // Update the original request status
       const updatedMessages = messages.map(msg => 
@@ -596,6 +672,23 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
 
   const declineMoneyRequest = async (messageId: string, conversationId: string) => {
     try {
+      // Find the money request message
+      const requestMessage = messages.find(msg => msg.id === messageId);
+      if (!requestMessage || !requestMessage.moneyRequestData) {
+        throw new Error('Money request not found');
+      }
+
+      // Update payment request status in MongoDB
+      if (decentralizedService.isMongoDBAvailable()) {
+        try {
+          const requestId = requestMessage.moneyRequestData.id;
+          await decentralizedService.declineMoneyRequest(requestId);
+          console.log(`❌ Payment request status updated in MongoDB: ${requestId}`);
+        } catch (error) {
+          console.warn('⚠️ Failed to update payment request status in MongoDB:', error);
+        }
+      }
+
       // Update the request status
       const updatedMessages = messages.map(msg => 
         msg.id === messageId 
@@ -614,14 +707,14 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children, 
         messageType: 'text',
       };
 
-      // Store decline message in decentralized system via Cometh
-      const { walrusResult, contractTxHash } = await decentralizedService.sendMessage(
+      // Store decline message in decentralized system via Cometh with MongoDB tracking
+      const { walrusResult, contractTxHash, mongoDBRecordId } = await decentralizedService.sendMessage(
         declineMessage,
         currentUser!.address,
         transactionService
       );
 
-      console.log(`Decline message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}`);
+      console.log(`Decline message stored! Walrus Blob ID: ${walrusResult.blobId}, Contract TX: ${contractTxHash}, MongoDB Record: ${mongoDBRecordId}`);
 
       // Add decline message
       setMessages(prev => [...prev, declineMessage]);
