@@ -16,7 +16,7 @@ export interface Message {
   paymentToken?: 'WLD' | 'USDC';
   paymentReference?: string;
   paymentStatus?: 'pending' | 'success' | 'failed';
-  requestStatus?: 'pending' | 'accepted' | 'declined';
+  requestStatus?: 'pending' | 'accepted' | 'declined' | 'paid';
 }
 
 export interface Conversation {
@@ -56,5 +56,5 @@ export interface WalrusMessage {
   paymentToken?: 'WLD' | 'USDC';
   paymentReference?: string;
   paymentStatus?: 'pending' | 'success' | 'failed';
-  requestStatus?: 'pending' | 'accepted' | 'declined';
+  requestStatus?: 'pending' | 'accepted' | 'declined' | 'paid';
 } 

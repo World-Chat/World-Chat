@@ -25,6 +25,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     sendMessage, 
     sendPayment, 
     requestMoney,
+    requestBillSplit,
+    markPaymentAsPaid,
     currentUser,
     isLoading 
   } = useMessaging();
@@ -141,21 +143,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onToggleMobileSide
     const totalAmount = parseFloat(billAmount);
     if (isNaN(totalAmount) || totalAmount <= 0) return;
 
-    // Calculate amount per person (including the current user)
-    const totalPeople = selectedParticipants.length + 1; // +1 for the current user
-    const amountPerPerson = totalAmount / totalPeople;
-
-    // Create money requests for each selected participant
     const description = billDescription 
-      ? `Split bill: ${billDescription} (${totalAmount} ${billToken} ÷ ${totalPeople} people)`
-      : `Split bill: ${totalAmount} ${billToken} ÷ ${totalPeople} people`;
+      ? `${billDescription}`
+      : `Bill split`;
 
     try {
-      // Send individual money requests to each selected participant
-      for (const participantId of selectedParticipants) {
-        await requestMoney(amountPerPerson, billToken, description, currentConversation.id);
-      }
-
+      // Use the new requestBillSplit function that handles the logic internally
+      await requestBillSplit(totalAmount, billToken, description, currentConversation.id, selectedParticipants);
       setIsRequestDialogOpen(false);
     } catch (error) {
       console.error('Failed to split bill:', error);

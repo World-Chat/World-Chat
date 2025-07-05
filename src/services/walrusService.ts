@@ -125,14 +125,14 @@ export class WalrusMessageService {
     }
   }
 
-  async updateMessageStatus(messageId: string, status: 'pending' | 'success' | 'failed' | 'accepted' | 'declined'): Promise<void> {
+  async updateMessageStatus(messageId: string, status: 'pending' | 'success' | 'failed' | 'accepted' | 'declined' | 'paid'): Promise<void> {
     try {
       await walrusClient.update({
         collection: 'messages',
         id: messageId,
         data: { 
           paymentStatus: status === 'accepted' ? 'success' : status === 'declined' ? 'failed' : status,
-          requestStatus: status === 'accepted' || status === 'declined' ? status : undefined,
+          requestStatus: status === 'accepted' || status === 'declined' || status === 'paid' ? status : undefined,
         },
       });
     } catch (error) {

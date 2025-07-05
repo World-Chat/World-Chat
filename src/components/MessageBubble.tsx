@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { Message } from '../types/messaging';
 import { useMessaging } from '../contexts/MessagingContext';
-import { Send, CheckCircle, XCircle, Clock, Download, Upload } from 'lucide-react';
+import { Send, CheckCircle, XCircle, Clock, Download, Upload, Check } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -20,7 +20,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   senderAvatar,
 }) => {
-  const { acceptMoneyRequest, currentUser } = useMessaging();
+  const { acceptMoneyRequest, markPaymentAsPaid, currentUser } = useMessaging();
 
   const getPaymentStatusIcon = () => {
     switch (message.paymentStatus) {
@@ -54,10 +54,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }
   };
 
+  const handleMarkAsPaid = async () => {
+    if (message.id) {
+      await markPaymentAsPaid(message.id);
+    }
+  };
+
   const renderPaymentRequest = () => {
     const canRespond = !isOwnMessage && (message.requestStatus === 'pending' || !message.requestStatus);
     const isAccepted = message.requestStatus === 'accepted';
     const isDeclined = message.requestStatus === 'declined';
+    const isPaid = message.requestStatus === 'paid';
+    const canMarkAsPaid = isOwnMessage && message.requestStatus === 'pending';
 
     return (
       <div className="space-y-3">
@@ -68,6 +76,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           </span>
           {isAccepted && <CheckCircle className="h-4 w-4 text-green-500" />}
           {isDeclined && <XCircle className="h-4 w-4 text-red-500" />}
+          {isPaid && <Check className="h-4 w-4 text-green-500" />}
         </div>
         
         <div className="flex items-center justify-between">
@@ -75,10 +84,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {message.paymentAmount} {message.paymentToken}
           </Badge>
           <span className="text-xs text-blue-600">
-            {isAccepted ? 'Paid' : isDeclined ? 'Declined' : 'Money request'}
+            {isPaid ? 'Paid' : isAccepted ? 'Accepted' : isDeclined ? 'Declined' : 'Money request'}
           </span>
         </div>
         
+        {/* Show PAY button for recipients who haven't paid */}
         {canRespond && (
           <div className="flex justify-center mt-3">
             <Button 
@@ -87,6 +97,21 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2"
             >
               PAY {message.paymentAmount} {message.paymentToken}
+            </Button>
+          </div>
+        )}
+        
+        {/* Show Mark as Paid button for the requester */}
+        {canMarkAsPaid && (
+          <div className="flex justify-center mt-3">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={handleMarkAsPaid}
+              className="border-green-500 text-green-600 hover:bg-green-50 font-semibold px-6 py-2"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Mark as Paid
             </Button>
           </div>
         )}

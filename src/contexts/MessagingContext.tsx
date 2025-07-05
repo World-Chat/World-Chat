@@ -30,7 +30,9 @@ interface MessagingContextType {
   sendMessage: (content: string, conversationId: string) => Promise<void>;
   sendPayment: (amount: number, token: 'WLD' | 'USDC', recipientAddress: string, conversationId: string) => Promise<void>;
   requestMoney: (amount: number, token: 'WLD' | 'USDC', description: string, conversationId: string) => Promise<void>;
+  requestBillSplit: (amount: number, token: 'WLD' | 'USDC', description: string, conversationId: string, participants: string[]) => Promise<void>;
   acceptMoneyRequest: (messageId: string, conversationId: string) => Promise<void>;
+  markPaymentAsPaid: (messageId: string) => Promise<void>;
   createConversation: (participants: User[]) => Promise<Conversation>;
   createConversationWithContacts: () => Promise<void>;
   createFakeConversation: () => Promise<void>;
@@ -672,6 +674,83 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     }
   };
 
+  const requestBillSplit = async (amount: number, token: 'WLD' | 'USDC', description: string, conversationId: string, participants: string[]) => {
+    if (!currentUser) {
+      console.error('No current user available');
+      return;
+    }
+
+    try {
+      // Calculate amount per person
+      const totalPeople = participants.length + 1; // +1 for the current user
+      const amountPerPerson = amount / totalPeople;
+
+      // Create individual money requests for each participant who owes money
+      const requestDescription = description 
+        ? `Split bill: ${description} (${amount} ${token} ÷ ${totalPeople} people)`
+        : `Split bill: ${amount} ${token} ÷ ${totalPeople} people`;
+
+      // Send requests only to participants who owe money (not the person who paid)
+      // Note: The requestMoney function will create messages that only appear to the participants who owe money
+      for (const participantId of participants) {
+        // Create a custom message for each participant
+        const messageData = {
+          type: 'request_payment' as const,
+          conversationId,
+          sender: currentUser.id,
+          content: requestDescription,
+          amount: amountPerPerson.toString(),
+          currency: token,
+        };
+
+        try {
+          const response = await backendApi.postMessage(messageData);
+          
+          const message: Message = {
+            id: response.id,
+            conversationId: response.conversationId,
+            senderId: response.sender,
+            content: response.content,
+            timestamp: new Date(response.timestamp),
+            messageType: 'payment_request',
+            paymentAmount: amountPerPerson,
+            paymentToken: token,
+            requestStatus: 'pending',
+          };
+
+          // Update local state
+          setMessages(prev => [...prev, message]);
+        } catch (backendError) {
+          console.warn('Failed to store bill split request via backend:', backendError);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to split bill');
+    }
+  };
+
+  const markPaymentAsPaid = async (messageId: string) => {
+    try {
+      // Update the message status to paid
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, requestStatus: 'paid' }
+            : msg
+        )
+      );
+
+      // Try to update in backend if available
+      try {
+        await walrusService.updateMessageStatus(messageId, 'paid');
+      } catch (error) {
+        console.warn('Failed to update message status in backend:', error);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark payment as paid');
+    }
+  };
+
   const acceptMoneyRequest = async (messageId: string, conversationId: string) => {
     if (!currentUser) {
       console.error('No current user available');
@@ -874,7 +953,9 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
     sendMessage,
     sendPayment,
     requestMoney,
+    requestBillSplit,
     acceptMoneyRequest,
+    markPaymentAsPaid,
     createConversation,
     createConversationWithContacts,
     createFakeConversation,
